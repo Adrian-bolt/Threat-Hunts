@@ -14,7 +14,7 @@
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
-2. [Key Findings](#key-findings)
+2. [Environment Overview](#2-Environment Overview)
 3. [Environment & Hunt Scope](#environment--hunt-scope)
 4. [All Flags Quick Reference](#all-flags-quick-reference)
 5. [Attack Timeline](#attack-timeline)
@@ -37,7 +37,7 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ---
 
-## Key Findings
+## 2. Environment Overview
 
 - Confirmed initial access via a double-extension masqueraded file (`daniel_richardson_cv.pdf.exe`, SHA256: `48b97fd91946e81e3e7742b3554585360551551cbf9398e1f34f4bc4eac3a6b5`) executed through `explorer.exe`; user interaction confirmed
 - Identified C2 communication to `cdn.cloud-endpoint.net` and secondary staging from `sync.cloud-endpoint.net`, initiated directly by the payload for the full duration of the operation
