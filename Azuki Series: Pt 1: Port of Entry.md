@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-1. [Executive Summary](#executive-summary)
+1. [Executive Summary](#1-executive-summary)
 2. [Key Findings](#key-findings)
 3. [Environment & Hunt Scope](#environment--hunt-scope)
 4. [All Flags Quick Reference](#all-flags-quick-reference)
@@ -28,8 +28,8 @@
 
 ---
 
-## Executive Summary
-## Executive Summary
+
+## 1. Executive Summary
 
 This investigation found that an attacker broke into the Azuki system by logging in through Remote Desktop (RDP) using a stolen account (`kenji.sato`) from an outside IP (88.97.178.12). Once inside `azuki-sl`, the attacker looked around the network (`arp.exe`), hid files in `C:\ProgramData\WindowsCache`, and used built-in Windows tools like `certutil.exe` to download more malware. They avoided detection by turning off parts of Windows Defender and made sure they could stay in the system by creating a scheduled task ("Windows Update Check") and a backdoor account (`support`). The attacker stole passwords from memory using `mm.exe` with `sekurlsa::logonpasswords`, connected to a command-and-control server (78.141.196.6 over port 443), and compressed stolen data into `export-data.zip` before sending it out through Discord. They also cleared security logs (`wevtutil.exe`) to hide their actions and attempted to move to another system (10.1.0.188) using RDP (`mstsc.exe`). All findings were identified using Microsoft Defender for Endpoint (MDE) logs and KQL queries by analyzing activity across logon, process, file, registry, and network events.
 
