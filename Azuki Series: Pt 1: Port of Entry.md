@@ -1178,60 +1178,33 @@ Even though the attacker tried to hide their actions, the logs from Microsoft De
 
 ## 🧭 MITRE ATT&CK Mapping
 
+
 | Tactic              | Technique ID  | Technique Name                                               | Confidence  |
 |---------------------|---------------|--------------------------------------------------------------|-------------|
-| Initial Access      | T1566.001     | Phishing: Spearphishing Attachment                           | 🔴 High     |
-| Execution           | T1204.002     | User Execution: Malicious File                               | 🔴 High     |
-| Execution           | T1218         | System Binary Proxy Execution                                | 🔴 High     |
-| Defense Evasion     | T1036.005     | Masquerading: Match Legitimate Name or Location              | 🔴 High     |
-| Defense Evasion     | T1105         | Ingress Tool Transfer                                        | 🔴 High     |
-| Defense Evasion     | T1620         | Reflective Code Loading                                      | 🔴 High     |
-| Defense Evasion     | T1055         | Process Injection                                            | 🔴 High     |
+| Initial Access      | T1078         | Valid Accounts                                               | 🔴 High     |
+| Execution           | T1059.001     | Command and Scripting Interpreter: PowerShell                | 🔴 High     |
+| Execution           | T1105         | Ingress Tool Transfer                                        | 🔴 High     |
+| Defense Evasion     | T1562.001     | Impair Defenses: Disable or Modify Tools                     | 🔴 High     |
+| Defense Evasion     | T1036         | Masquerading                                                 | 🔴 High     |
 | Defense Evasion     | T1070.001     | Indicator Removal: Clear Windows Event Logs                  | 🔴 High     |
+| Defense Evasion     | T1564         | Hide Artifacts                                               | 🔴 High     |
 | Command and Control | T1071.001     | Application Layer Protocol: Web Protocols                    | 🔴 High     |
-| Resource Development| T1608.001     | Stage Capabilities: Upload Malware                           | 🟠 Medium   |
-| Credential Access   | T1003.002     | OS Credential Dumping: Security Account Manager              | 🔴 High     |
-| Credential Access   | T1555.003     | Credentials from Web Browsers                                | 🔴 High     |
-| Discovery           | T1033         | System Owner/User Discovery                                  | 🔴 High     |
-| Discovery           | T1135         | Network Share Discovery                                      | 🔴 High     |
-| Discovery           | T1069.001     | Permission Groups Discovery: Local Groups                    | 🔴 High     |
-| Persistence         | T1219         | Remote Access Software                                       | 🔴 High     |
+| Credential Access   | T1003         | OS Credential Dumping                                        | 🔴 High     |
+| Discovery           | T1016         | System Network Configuration Discovery                       | 🔴 High     |
 | Persistence         | T1053.005     | Scheduled Task/Job: Scheduled Task                           | 🔴 High     |
 | Persistence         | T1136.001     | Create Account: Local Account                                | 🔴 High     |
-| Persistence         | T1098         | Account Manipulation                                         | 🔴 High     |
-| Collection          | T1039         | Data from Network Shared Drive                               | 🔴 High     |
 | Collection          | T1074.001     | Data Staged: Local Data Staging                              | 🔴 High     |
-| Collection          | T1560.001     | Archive Collected Data: Archive via Utility                  | 🔴 High     |
+| Collection          | T1560.001     | Archive Collected Data                                       | 🔴 High     |
+| Exfiltration        | T1567         | Exfiltration Over Web Service                                | 🔴 High     |
 | Lateral Movement    | T1021.001     | Remote Services: Remote Desktop Protocol                     | 🔴 High     |
-| Lateral Movement    | T1078         | Valid Accounts                                               | 🔴 High     |
-| Lateral Movement    | T1021.003     | Remote Services: Distributed Component Object Model          | 🟠 Medium   |
-| Lateral Movement    | T1021.002     | Remote Services: SMB/Windows Admin Shares                    | 🟠 Medium   |
 
 > 🔴 **High** — Directly observed in telemetry, confirmed with evidence\
 > 🟠 **Medium** — Inferred from correlated behavior; attempted but outcome unconfirmed or indirectly evidenced\
 > 🟡 **Low** — Suspected based on pattern, not directly confirmed
 
-The ATT&CK coverage across this investigation is heavily weighted toward **Defense Evasion**, **Persistence**, and **Credential Access**: the three tactic areas where the attacker invested the most deliberate effort. Defense Evasion techniques appear at every major phase, from the double-extension masquerade at delivery through LOLBin-only tool acquisition, log clearing at departure, and reflective in-memory execution for the final credential harvest. The breadth of persistence mechanisms (three independent methods across three hosts) and the depth of credential targeting (registry hives plus browser DPAPI) reflect an attacker who was not conducting a rapid smash-and-grab; they were establishing long-term residency with layered fallback paths.
+The attacker broke into the system using a stolen account and Remote Desktop (RDP), without needing any exploits. They relied on built-in Windows tools to stay hidden instead of using obvious malware.
+To avoid detection, the attacker turned off parts of Windows Defender, hid files in a non-standard folder, used tools like `certutil.exe`, and cleared logs with `wevtutil.exe`. This shows they were trying to stay unnoticed the entire time. They kept access by creating a scheduled task and a backdoor account. They then stole passwords from memory using `mm.exe` with `sekurlsa::logonpasswords`, allowing them to move further in the system.
+The attacker collected data, saved it as `export-data.zip`, and sent it out using Discord, making the traffic look normal. Overall, this attack shows a “living-off-the-land” approach, where the attacker used normal system tools and behavior to stay hidden while keeping control of the system.
 
 ---
-
-## Final Thoughts & What I Learned
-
-The BROKER was the a demanding and the most lengthy challenge I have worked through. There were multiple points where I had to step back, reconsider the timeline, and rebuild my mental model of the attack chain. One of the hardest moments came in Section 8. When hunting for modification evidence on the BACS payment file, I made an assumption that Microsoft Office was the editing application and searched for `.xlsx` or a `~$` temporary file. I hit a wall. Stepping back and running a broader file type search was the pivot that broke it open: an `.ods` file! This confirmed LibreOffice rather than Office. The artifact type (`~lock.#`) followed directly from the application. That sequence was a clean lesson in letting the logs define the answer rather than narrowing the query around an assumption. Any time a query comes back empty and you are confident the event happened, the first question should be whether you have assumed the wrong table, application, format, or tool.
-
-The `ClrUnbackedModuleLoaded` event was genuinely new territory for me. I was aware of memory injection conceptually, but the initial instinct was to look for the injection in `DeviceProcessEvents`. However, nothing there explained how `SharpChrome` was operating inside `notepad.exe` with no file creation event anywhere in the chain. Pivoting to `DeviceEvents` and working through the distinct `ActionType` values present in the final minutes of the intrusion (after hitting a dead end in `DeviceProcessEvents` precisely because there was no file to find) made the technique real in a way documentation does not. Understanding why an "unbacked" module means no file ever touched disk, and how that breaks traditional file-based detection entirely, is now a permanent part of how I think about defensive gaps for .NET-based tooling. That `ActionType` will go into every future hunt template I build.
-
-The most satisfying analytical moment in the whole investigation was reconstructing the `notepad.exe` story. The corrected telemetry showed that `notepad.exe ""` was not spawned immediately at infection as a naive decoy; it was spawned at 05:09:53Z, over an hour into the operation, after the event logs had been cleared. The payload held its own process identity for sixty minutes, then pre-positioned a trusted process as an injection host for the final operation. That is operational planning, not opportunism. Understanding that timeline correctly changed the entire interpretive frame for Flags 4, 5, and 40, and connecting all three flags into a single deliberate three-step sequence (logs cleared, Notepad spawned, SharpChrome injected) was the clearest example in this hunt of why chronological validation has to come before narrative construction.
-
-
----
-
-## Credits
-
-Thanks to Josh Madakor and Mohammed A for the scenario design and Cyber Range environment.
-
----
-
-## Disclaimer
-
-This report is based on a controlled Cyber Range scenario. All systems, users, files, and IP addresses are simulated.
+ 
