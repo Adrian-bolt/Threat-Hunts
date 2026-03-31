@@ -407,48 +407,48 @@ Excluding the temp folder allows malware to run freely without triggering Defend
 
 ---
 
-### 🚩 Flag 7: Command and Control | C2 Process
+### 🚩 Flag 7: Defence Evasion | Download Utility Abuse
 
 **Objective**
-Confirm the process responsible for C2 traffic to establish a clear link between the initial payload and network activity throughout the operation.
+dentify how malware was downloaded.
 
 **Hunt Question**
-What process initiated the outbound C2 connections?
+Identify the Windows-native binary the attacker abused to download files?
 
-**Answer:** `daniel_richardson_cv.pdf.exe`
+**Answer:** `certutil.exe`
 
 **Query Used**
 
 ```kql
-DeviceNetworkEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T05:15:00Z))
-| where DeviceName == "as-pc1"
-| where RemoteUrl contains "cloud-endpoint"
-| project TimeGenerated, DeviceName, InitiatingProcessFileName, RemoteUrl, RemoteIP
-| order by TimeGenerated asc
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine has_any ("powershell.exe", "cmd.exe", "certutil.exe", "rundll32.exe", "wscript.exe", "reg.exe", "te.exe", "PsExec.exe") 
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- C2 process: `daniel_richardson_cv.pdf.exe`
-- The payload binary is directly responsible for outbound connections for the full hour of the operation
-- The attacker did not inject into another process for network activity until the very final step
+- `certutil.exe` used to retrieve payloads
+- Native Windows binary leveraged
+
 
 **Analysis**
-The payload itself making C2 connections, rather than injecting into a system process for network activity, tells us this binary is a full-capability agent, not merely a stager. It ran exposed under its own process identity for over an hour. This means that during the initial access and persistence phases, process-based network detection would have caught it. The fact that the attacker did not immediately hollow a trusted process on first execution suggests either operational confidence or a deliberate decision to leave the injection technique as a late-stage tool to be used only for the high-value final operation.
+Using built-in tools like `certutil.exe` helps attackers blend in and avoid detection.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                                   |
 |-----------|---------------------------------------------------------|
 | Tactic    | Command and Control                                     |
-| Technique | T1071.001: Application Layer Protocol: Web Protocols    |
+| Technique | T1105: Ingress Tool Transfer                            |
 
 **Evidence**
-> <img width="1127" height="256" alt="image" src="https://github.com/user-attachments/assets/42f84271-5db0-437f-aedc-c807c2e2f1c6" />
 
----
+<img width="1506" height="510" alt="image" src="https://github.com/user-attachments/assets/ecc403b5-4072-4a5e-aa98-37897290c3ff" />
 
-*With C2 confirmed, the investigation turned to a second domain observed in network telemetry.*
+
+
 
 ---
 
