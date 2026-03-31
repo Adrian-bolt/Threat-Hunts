@@ -141,51 +141,41 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ---
 
-### 🚩 Flag 1: Initial Access | Initial Vector
+### 🚩 Flag 1: Initial Access | Remote Access Source
 
 **Objective**
-Identify the file that initiated the infection chain to establish what arrived on the endpoint and how the attacker achieved their first foothold.
+Identify the external source of the intrusion.
 
 **Hunt Question**
-What is the filename of the file that started the infection?
+What IP address was used to access the system?
 
-**Answer:** `daniel_richardson_cv.pdf.exe` 
+**Answer:** `88.97.178.12`
 
 **Query Used**
 
 ```kql
-let start_time = datetime(2026-01-14);
-let end_time = datetime(2026-01-16);
-search "Daniel"
-| where TimeGenerated between (start_time .. end_time)
-| where DeviceName == "as-pc1"
-| project TimeGenerated, Type, DeviceName,Filename, InitiatingProcessCommandLine 
-| order by TimeGenerated asc
+DeviceLogonEvents
+| where DeviceName == "azuki-sl"
+| where ActionType == "LogonSuccess"
+| project TimeGenerated, AccountName, RemoteIP, LogonType
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- File contained a double extension (`.pdf.exe`), crafted to appear as a document
-- File landed on `as-pc1`, the entry point for all subsequent activity
-- Naming convention consistent with a fake job applicant CV used in a targeted delivery
+- Remote login detected from external IP
+- Successful authentication recorded
+- Entry point confirmed on `azuki-sl`
 
 **Analysis**
-We used the MDE Alert Timeline page to quickly identify a candidate file. We can see a lot of suspicious activity coming from this file with the query above, which searches all tables in the workspace. This reveals a ton of information that we'll keep note of as we continue the investigation. Many of these results will become Indicators of Compromise (IoC) (the filename, hash, and attacker-controlled domains) while the behavioral patterns such as certutil downloading an executable and the post-execution discovery command sequence will inform Indicator of Attack (IoA) detection rules relevant for future flags.
-
-The filename `daniel_richardson_cv.pdf.exe` is a textbook double-extension masquerade. With Windows configured to hide known file extensions (the default in most enterprise environments), a user sees `daniel_richardson_cv.pdf` in Explorer with no indication they are about to execute a binary. Ashford Sterling Recruitment is a natural target for this technique: a recruitment firm receives unsolicited CVs routinely, making the delivery context entirely plausible and lowering the victim's guard.
-
-The specific name adds social engineering weight. "Daniel Richardson" is a credible-sounding applicant name, and the `.pdf` extension matches what HR staff expect. This is not a spray-and-pray phishing file; the attacker understood the target's business context and crafted the delivery to fit it.
-
-For defenders, this is a detection opportunity at multiple layers: file creation alerts for `*.pdf.exe` patterns, email attachment filtering on double-extension files, and endpoint protection rules flagging executables masquerading as documents.
+We used `DeviceLogonEvents` because RDP activity shows up as login events. The presence of an external IP confirms this was not a local login. This indicates the attacker gained access using valid credentials over RDP.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                           |
 |-----------|-------------------------------------------------|
 | Tactic    | Initial Access                                  |
-| Technique | T1566.001: Phishing: Spearphishing Attachment   |
+| Technique | T1078: Valid Accounts                           |
 
-**Evidence**
-><img width="1578" height="807" alt="image" src="https://github.com/user-attachments/assets/9fd32d0e-c277-4193-923a-8a1204dad39c" />
 
 
 
