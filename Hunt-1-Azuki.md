@@ -1,3 +1,4 @@
+<img width="683" height="1024" alt="image" src="https://github.com/user-attachments/assets/b9a09f79-ff7a-4886-bc4d-d66623d0e34e" />
 
 # SOC Incident Investigation: Azuki: Port of Entry
 
