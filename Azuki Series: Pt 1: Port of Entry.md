@@ -1185,6 +1185,7 @@ Even though the attacker tried to hide their actions, the logs from Microsoft De
 
 ## 🧭 MITRE ATT&CK Mapping
 
+## MITRE ATT&CK Mapping
 
 | Tactic              | Technique ID  | Technique Name                                               | Confidence  |
 |---------------------|---------------|--------------------------------------------------------------|-------------|
