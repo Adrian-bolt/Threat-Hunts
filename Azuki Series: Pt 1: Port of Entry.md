@@ -50,30 +50,35 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ---
 
-## Environment & Hunt Scope
+## 3. Key Findings
 
-#### Monitored Systems
+## Key Findings
 
-- `as-pc1` — Initial access endpoint; origin of lateral movement
-- `as-pc2` — Intermediate pivot host; used to access the file server
-- `as-srv` — File server; target of data access and exfiltration staging
+- The attacker got into the system using Remote Desktop (RDP) from IP `88.97.178.12` with a stolen account `kenji.sato` on `azuki-sl`
 
-#### Data Sources Available
+- After getting in, the attacker looked around the network using a basic command (`arp.exe -a`) to see other devices
 
-- Microsoft Defender for Endpoint (MDE) via Microsoft Sentinel / Log Analytics Workspace
-  - `DeviceProcessEvents` — process execution and command-line telemetry
-  - `DeviceFileEvents` — file creation, modification, and access events
-  - `DeviceNetworkEvents` — outbound connections, remote URLs, destination IPs
-  - `DeviceLogonEvents` — authentication and logon session data
-  - `DeviceEvents` — system events including module loads and log clearing
+- The attacker hid their files in `C:\ProgramData\WindowsCache` to keep them out of sight
 
-#### Investigation Constraints
+- They turned off parts of Windows Defender by excluding certain file types and a folder (`C:\Users\KENJI~1.SAT\AppData\Local\Temp`) so they wouldn’t get caught
 
-- No direct endpoint access, memory dumps, disk forensics, or packet capture
-- No file content inspection
-- No sandbox detonation of recovered artifacts
+- The attacker used a built-in Windows tool (`certutil.exe`) to download more malicious files
 
-All findings were reconstructed through behavioral correlation of process execution, file system, network, and logon event data. Where exact intent could not be confirmed from a single event, findings were validated across multiple independent telemetry sources before being included as confirmed. The deliberate clearance of Windows event logs during the final phase meant that MDE's independent telemetry was the sole surviving forensic record, underscoring its value as a detection layer that cannot be wiped by attacker-accessible tools.
+- They made sure they could stay in the system by creating a scheduled task called "Windows Update Check" that runs a fake file (`svchost.exe`)
+
+- They also created a secret backup account called `support` to get back in anytime
+
+- The attacker stole passwords from memory using a tool (`mm.exe`) with the command `sekurlsa::logonpasswords`
+
+- The system was talking to an attacker-controlled server (`78.141.196.6`) over port 443, which looks like normal internet traffic
+
+- The attacker collected data and saved it into a file called `export-data.zip`
+
+- The stolen data was sent out using Discord
+
+- The attacker deleted security logs using `wevtutil.exe` to hide what they did
+
+- They tried to move to another computer (`10.1.0.188`) using Remote Desktop (`mstsc.exe`)
 
 ---
 
