@@ -588,51 +588,48 @@ This IP represents attacker infrastructure used to control the compromised syste
 
 ---
 
-### 🚩 Flag 11: Credential Access | Execution Identity
+### 🚩 Flag 11: Command & Control | C2 Communication Port
 
 **Objective**
-Establish the user account under which credential extraction was performed to define the scope of account compromise.
+Identify communication channel used by attacker.
 
 **Hunt Question**
-What user account performed the credential extraction?
+Identify the destination port used for command and control communications?
 
-**Answer:** `sophie.turner`
+**Answer:** `443`
 
 **Query Used**
 
 ```kql
-DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T04:00:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == "as-pc1"
-| where FileName == "reg.exe"
-| where ProcessCommandLine has_any ("save", "export")
-| where ProcessCommandLine has_any ("SAM", "SYSTEM", "SECURITY")
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
-| order by TimeGenerated asc
+ DeviceNetworkEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where InitiatingProcessFileName in~ ("powershell.exe", "curl.exe", "certutil.exe", "wget.exe")
+| project TimeGenerated, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, RemoteUrl, RemoteIP, RemotePort
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- Credential extraction performed by: `sophie.turner`
-- The initial payload executed in `sophie.turner`'s user context
-- This account is the primary identity for Sections 1–5 of the attack
+- HTTPS port used for communication
+- Traffic appears legitimate
+
 
 **Analysis**
-`sophie.turner` is the initial compromised account; the user who double-clicked the CV. The fact that this account had sufficient permissions to run `reg save` against `SAM` and `SYSTEM` hives indicates they held elevated local rights, likely local Administrator membership. This amplifies the impact of the initial compromise: a standard user account would not have the required privileges for registry hive extraction, meaning a principle of least privilege policy would have broken this step of the attack chain.
+Using port 443 helps attackers hide within normal encrypted web traffic.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                                          |
 |-----------|----------------------------------------------------------------|
 | Tactic    | Credential Access                                              |
-| Technique | T1003.002: OS Credential Dumping: Security Account Manager     |
+| Technique | T1071: Application Layer Protocol                              |
 
 **Evidence**
-> <img width="1138" height="290" alt="image" src="https://github.com/user-attachments/assets/d5a4dc8f-0ba1-4605-b4a4-cca75de72ac2" />
+
+<img width="1497" height="513" alt="image" src="https://github.com/user-attachments/assets/26a745a2-f860-4814-8905-ce9d3bf1ca04" />
 
 
----
 
-*With credential access fully documented, the investigation moved to the attacker's discovery phase.*
 
 ---
 
