@@ -33,31 +33,6 @@
 
 This investigation found that an attacker broke into the Azuki system by logging in through Remote Desktop (RDP) using a stolen account (`kenji.sato`) from an outside IP (88.97.178.12). Once inside `azuki-sl`, the attacker looked around the network (`arp.exe`), hid files in `C:\ProgramData\WindowsCache`, and used built-in Windows tools like `certutil.exe` to download more malware. They avoided detection by turning off parts of Windows Defender and made sure they could stay in the system by creating a scheduled task ("Windows Update Check") and a backdoor account (`support`). The attacker stole passwords from memory using `mm.exe` with `sekurlsa::logonpasswords`, connected to a command-and-control server (78.141.196.6 over port 443), and compressed stolen data into `export-data.zip` before sending it out through Discord. They also cleared security logs (`wevtutil.exe`) to hide their actions and attempted to move to another system (10.1.0.188) using RDP (`mstsc.exe`). All findings were identified using Microsoft Defender for Endpoint (MDE) logs and KQL queries by analyzing activity across logon, process, file, registry, and network events.
 
-## Hunt Narrative
-
-**Sections 1–4: The Foothold and Recon**
-
-Right away, `daniel_richardson_cv.pdf.exe` stands out as a filename generating significant suspicious activity. Pulling `DeviceProcessEvents`, we captured its SHA256 hash (`48b97fd9...`) and confirmed it was executed via a direct user double-click through `explorer.exe`. The double-extension naming exploited a classic Windows default: with "hide known file extensions" enabled, a victim in a recruitment firm sees only `daniel_richardson_cv.pdf` and has no indication they are about to execute a binary.
-
-We then queried `DeviceNetworkEvents` originating from `as-pc1` to understand what the malware was doing after execution. The outbound connections to `cdn.cloud-endpoint.net` were initiated directly by `daniel_richardson_cv.pdf.exe` itself; the payload acted as the primary C2 agent for the full duration of the attack, not merely a dropper. A second domain, `sync.cloud-endpoint.net`, handled additional payload staging. Looking at the timeline just after 03:58Z, we can see the attacker getting the lay of the land: they ran `whoami.exe` to confirm their privileges, `net view` to spot network shares, and queried the local `administrators` group. Shortly after, operating as `sophie.turner`, they used `reg.exe save` to dump the `SAM` and `SYSTEM` hives straight to `C:\Users\Public`, a classic credential harvesting using nothing but a native Windows utility.
-
-**Persistence**
-
-The attacker wasn't planning a short visit. Looking at the process logs, we saw them use `certutil.exe` to natively pull down `AnyDesk.exe` from an external URL. They accessed the `system.conf` file and configured an unattended access password (`intrud3r!`), hardcoded directly into the command line as a recoverable plaintext artifact. We later mapped this deployment across all three hosts (`as-pc1`, `as-pc2`, `as-srv`): the attacker owned every machine in the environment before moving laterally.
-
-But they didn't stop there. Later in the timeline, we found them creating a scheduled task named `MicrosoftEdgeUpdateCheck`. The payload behind it was a file named `RuntimeBroker.exe`. Checking the hash of this supposed RuntimeBroker produced an "aha" moment: it matched the `daniel_richardson_cv.pdf.exe` hash exactly. The attacker simply renamed their initial payload to blend into a list of Windows processes. To complete the persistence layer, they also created a local account named `svc_backup`, mimicking a service account to survive routine audits.
-
-**Lateral Movement**
-
-This was a satisfying sequence to track. Between 04:18Z and 04:29Z, the logs showed `wmic.exe` and `psexec.exe` commands targeting `as-pc2`. We confirmed the failure by checking for corresponding child processes and successful network logons on the target; there were none. Realizing they were blocked, the attacker switched to `mstsc.exe`, and we immediately found a `LogonType 10` (RemoteInteractive) success event on `as-pc2`. The credentials for `david.mitchell`, most likely obtained via the earlier registry hive dump, were used to walk through the front door and used to walk through the front door. The attacker then pivoted again from `as-pc2` to `as-srv`, completing the two-hop path.
-
-**The Objective**
-
-With `david.mitchell` authenticated to `as-srv`, we queried DeviceFileEvents on the file server during the active session window. The initial search narrowed to Office-adjacent extensions and looked for `~$` temp files as modification evidence; nothing came back. Stepping back and broadening the query to include a wider range of file extensions (`.ods, .csv, .pdf` alongside the expected `.xlsx`) was the pivot that broke it open. BACS_Payments_Dec2025.ods surfaced immediately. The .ods extension confirmed LibreOffice rather than Microsoft Office as the editing application, which meant the modification artifact was a .~lock. file rather than a ~$ temp file. Querying for .~lock prefix files on as-srv returned .~lock.BACS_Payments_Dec2025.ods#, unambiguous evidence the file was opened for editing. The attacker packaged their collection into Shares.7z for staging.
-
-**Anti-Forensics and Memory**
-
-Before logging off, the attacker cleaned up. We spotted `wevtutil.exe cl` clearing the `Security`, `System`, and `Application` logs. Finding the credential theft took longer. The instinct was to look for the injection in `DeviceProcessEvents`, but nothing there explained how `SharpChrome` was operating inside `notepad.exe` with no corresponding file creation event. Pivoting to `DeviceEvents` and enumerating the distinct `ActionType` values present in the final minutes of the intrusion surfaced `ClrUnbackedModuleLoaded`, an event that fires specifically when a .NET assembly is loaded entirely in memory with no file backing it on disk. At 05:09:53Z, the payload spawned `notepad.exe ""`, pre-positioning a trusted, signed Windows process as an injection host for the final operation; the blank window a secondary decoy for any watching user. Seconds later, `SharpChrome` was reflectively loaded directly into that `notepad.exe` process, harvesting saved browser credentials without ever touching disk. 
 
 
 ---
