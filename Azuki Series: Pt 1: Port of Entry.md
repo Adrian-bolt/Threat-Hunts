@@ -264,10 +264,10 @@ The attacker began mapping the environment immediately after access to identify 
 
 **MITRE ATT&CK Mapping**
 
-| Field     | Value                                        |
-|-----------|----------------------------------------------|
-| Tactic    | Execution                                    |
-| Technique | T1016 System Network Configuration Discovery |
+| Field     | Value                                         |
+|-----------|-----------------------------------------------|
+| Tactic    | Execution                                     |
+| Technique | T1016: System Network Configuration Discovery |
 
 **Evidence**
  
@@ -319,60 +319,48 @@ Attackers commonly use hidden directories to store malware. The use of `attrib` 
 
 ---
 
-### 🚩 Flag 5: Initial Access | Process Arguments
+### 🚩 Flag 5: Defence Evasion | File Extension Exclusions
 
 **Objective**
-Capture the full command line of the spawned process to confirm the decoy intent and the pre-positioning of an injection host.
+Identify how Windows Defender protections were weakened.
 
 **Hunt Question**
-What was the full command line used to launch the child process, as shown in telemetry?
+How many file extensions were excluded from Windows Defender scanning?
 
-**Answer:** `notepad.exe ""`
+**Answer:** `3`
 
 **Query Used**
 
 ```kql
-let start_time = datetime(2026-01-14T00:00:00Z);
-let end_time = datetime(2026-01-16T00:00:00Z);
-let payload_name = "daniel_richardson_cv.pdf.exe";
-DeviceProcessEvents
-| where TimeGenerated between (start_time .. end_time)
-| where DeviceName =~ "as-pc1"
-| where InitiatingProcessFileName =~ payload_name
-// Narrow our focus entirely to the suspicious child process we just found
-| where FileName =~ "notepad.exe"
-// Project the command line column so we can see the exact arguments
-| project TimeGenerated, 
-          ActionType, 
-          InitiatingProcessFileName, 
-          FileName, 
-          ProcessCommandLine 
-| order by TimeGenerated asc
+DeviceRegistryEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where RegistryKey contains "Exclusions\\Extensions"
+| project TimeGenerated, DeviceName, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- Full command line: `notepad.exe ""`
-- Empty string argument passed explicitly; opens a blank, untitled window
-- Spawned immediately after event log clearance and immediately before `ClrUnbackedModuleLoaded`
+- Defender exclusions modified
+- Multiple extensions excluded
+- Changes occurred early in attack
 
 **Analysis**
-`notepad.exe ""` (calling Notepad with an explicit empty string argument) is a strong behavioral tell. A legitimate application launching Notepad to display a document would pass a file path. The empty argument produces a blank, untitled window. From the victim's perspective, this might appear as a brief rendering glitch, quickly dismissed and closed, while the attacker's code executes silently inside that process's memory space.
-
-Chronologically, this command sits in a three-event sequence: logs cleared (05:07:59Z), Notepad spawned (05:09:53Z), SharpChrome loaded (05:10:08Z). The sequence is deliberate; destroy the primary forensic evidence, prepare a clean injection host, execute the final credential harvest. For defenders, `notepad.exe ""` spawned from any non-interactive process is a detectable and highly specific behavioral indicator.
+By excluding file extensions, the attacker ensured certain files would not be scanned, reducing the chance of detection.
 
 **MITRE ATT&CK Mapping**
 
-| Field     | Value                  |
-|-----------|------------------------|
-| Tactic    | Defense Evasion        |
-| Technique | T1036: Masquerading    |
+| Field     | Value                    |
+|-----------|--------------------------|
+| Tactic    | Defense Evasion          |
+| Technique | T1562:Impair Defenses    |
 
 **Evidence**
-> <img width="934" height="420" alt="image" src="https://github.com/user-attachments/assets/e86de3b4-36fc-4942-96db-fd0e00dca6bc" />
 
----
+<img width="1498" height="507" alt="image" src="https://github.com/user-attachments/assets/25cc7703-86a6-4c3c-9e0e-eb322bd70f39" />
 
-*With initial execution fully documented, the investigation pivoted to the network layer to identify C2 communication.*
+
+
 
 ---
 
