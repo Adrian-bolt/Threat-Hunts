@@ -902,49 +902,48 @@ Backdoor accounts provide attackers with continued access.
 
 ---
 
-### 🚩 Flag 18: Persistence: Remote Tool | Configuration Access
+### 🚩 Flag 18: Execution | Malicious Script
 
 **Objective**
-Identify the AnyDesk configuration file accessed after installation to understand how unattended access was configured.
+Identify automation used in attack.
 
 **Hunt Question**
-What is the full path of the AnyDesk configuration file that was accessed?
+Identify the PowerShell script file used to automate the attack chain?
 
-**Answer:** `C:\Users\Sophie.Turner\AppData\Roaming\AnyDesk\system.conf`
+**Answer:** `wupdate.ps1`
 
 **Query Used**
 
 ```kql
-DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T04:00:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == "as-pc1"
-| where ProcessCommandLine has_any (".conf", ".ini", ".json")
-| project TimeGenerated, DeviceName, ActionType, ProcessCommandLine, InitiatingProcessFileName
-| order by TimeGenerated asc
+DeviceFileEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where InitiatingProcessCommandLine endswith ".ps1" or FileName endswith ".bat"
+| project TimeGenerated, DeviceName, FileName, FolderPath, SHA256, InitiatingProcessFileName, InitiatingProcessCommandLine
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- Configuration file accessed: `C:\Users\Sophie.Turner\AppData\Roaming\AnyDesk\system.conf`
-- `system.conf` is where AnyDesk stores its unattended access password
-- Path in `sophie.turner`'s user profile confirms deployment within the initially compromised account context
+- Script execution detected
+- Used early in attack
+
 
 **Analysis**
-`system.conf` stores the unattended access password for AnyDesk. By accessing this file after installation, the attacker was writing a predetermined password to allow persistent re-entry without any interaction from the compromised workstation. The path under `sophie.turner`'s `AppData\Roaming` directory tells us AnyDesk was installed in the user context of the initially compromised account rather than as a system-wide service, an important distinction for remediation scoping. Any `system.conf` creation or write event under an AnyDesk folder path is a precise hunting target.
+The script likely automated multiple steps in the attack chain.
 
 **MITRE ATT&CK Mapping**
 
-| Field     | Value                        |
-|-----------|------------------------------|
-| Tactic    | Persistence                  |
-| Technique | T1219: Remote Access Software |
+| Field     | Value                                      |
+|-----------|--------------------------------------------|
+| Tactic    | Persistence                                |
+| Technique | T1059: Command and Scripting Interpreter   |
 
 **Evidence**
-> <img width="1012" height="240" alt="image" src="https://github.com/user-attachments/assets/476aa8f4-69b1-4986-8ad8-bf837202d96a" />
+
+<img width="1892" height="510" alt="image" src="https://github.com/user-attachments/assets/d1a29527-f22f-41f2-8b97-46838bb13f60" />
 
 
----
 
-*With the configuration file located, the investigation recovered the unattended access password.*
 
 ---
 
