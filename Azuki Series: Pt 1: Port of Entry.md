@@ -350,10 +350,10 @@ By excluding file extensions, the attacker ensured certain files would not be sc
 
 **MITRE ATT&CK Mapping**
 
-| Field     | Value                    |
-|-----------|--------------------------|
-| Tactic    | Defense Evasion          |
-| Technique | T1562:Impair Defenses    |
+| Field     | Value                     |
+|-----------|---------------------------|
+| Tactic    | Defense Evasion           |
+| Technique | T1562: Impair Defenses    |
 
 **Evidence**
 
