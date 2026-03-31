@@ -541,53 +541,45 @@ The attacker disguised malware as `svchost.exe` to blend in with legitimate syst
 
 ---
 
-### 🚩 Flag 10: Credential Access | Local Staging
+### 🚩 Flag 10: Command & Control | C2 Server Address
 
 **Objective**
-Identify where the extracted registry hives were saved locally to establish the staging location used prior to offline processing.
+Identify attacker-controlled infrastructure.
 
 **Hunt Question**
-What directory were the extracted credential files saved to?
+Identify the IP address of the command and control server?
 
-**Answer:** `C:\Users\Public`
+**Answer:** `78.141.196.6`
 
 **Query Used**
 
 ```kql
-DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T04:00:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == "as-pc1"
-| where FileName == "reg.exe"
-| where ProcessCommandLine has_any ("save", "export")
-| where ProcessCommandLine has_any ("SAM", "SYSTEM", "SECURITY")
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
-| order by TimeGenerated asc
+78.141.196.6
 ```
 
 **Key Observations**
-- Staging directory: `C:\Users\Public`
-- Readable and writable by all local users without elevation in most configurations
-- Files written here survive user session changes and are accessible across accounts
+- Outbound connection to external IP
+- Communication initiated by LOLBins
+
 
 **Analysis**
-`C:\Users\Public` is a deliberate choice. Unlike a user-specific temp directory, this path is accessible to any local account, making it a useful handoff point between different user contexts within the same compromise. If the attacker needs to access the hive files under a different account later (e.g., during lateral movement), they can retrieve them from this shared location without needing to modify permissions. The use of a legitimate Windows directory also reduces the likelihood of detection from file path-based monitoring rules that focus on unusual system or temp paths.
+This IP represents attacker infrastructure used to control the compromised system.
 
-> 💡 *Newer hunters: notice that Flags 9, 10, and 11 are all answered by a single query. When a flag asks "what account", "what directory", and "what hives" about the same event, one well-projected query can cover all three. Project every relevant column up front instead of running three separate searches.*
+
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                      |
 |-----------|--------------------------------------------|
 | Tactic    | Collection                                 |
-| Technique | T1074.001: Data Staged: Local Data Staging |
+| Technique | T1071: Application Layer Protocol          |
 
 **Evidence**
-> <img width="1138" height="290" alt="image" src="https://github.com/user-attachments/assets/8cefe41b-5460-4805-b986-a85fd52c0d8f" />
+
+<img width="1495" height="509" alt="image" src="https://github.com/user-attachments/assets/7a41db9d-352d-4147-9299-a28adeedcc81" />
 
 
----
 
-*With the staging location confirmed, the investigation determined the user context for credential extraction.*
 
 ---
 
