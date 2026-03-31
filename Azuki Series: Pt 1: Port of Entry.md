@@ -155,9 +155,10 @@ What IP address was used to access the system?
 
 ```kql
 DeviceLogonEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
 | where DeviceName == "azuki-sl"
 | where ActionType == "LogonSuccess"
-| project TimeGenerated, AccountName, RemoteIP, LogonType
+| project TimeGenerated, AccountName, RemoteIP, RemoteDeviceName, LogonType, AdditionalFields
 | sort by TimeGenerated asc
 ```
 
@@ -177,62 +178,51 @@ We used `DeviceLogonEvents` because RDP activity shows up as login events. The p
 | Technique | T1078: Valid Accounts                           |
 
 
+**Evidence**
+<img width="1499" height="508" alt="image" src="https://github.com/user-attachments/assets/fb2989fb-1aa3-4b3d-8270-f6387be6766e" />
 
 
 ---
 
 
 
-### 🚩 Flag 2: Initial Access | Payload Hash
+### 🚩 Flag 2: Initial Access | Compromised Account
 
 **Objective**
-Capture the SHA256 hash of the initial payload to enable IOC sharing, blocking, and retrospective hunting; a critical fingerprint that reappears later in the investigation.
+Identify which account was used to gain access.
 
 **Hunt Question**
-What is the SHA256 hash of the initial payload file?
+Which account was used for the remote login?
 
-**Answer:** `48b97fd91946e81e3e7742b3554585360551551cbf9398e1f34f4bc4eac3a6b5`
+**Answer:** `kenji.sato`
 
 **Query Used**
 
 ```kql
-let start_time = datetime(2026-01-14T00:00:00Z);
-let end_time = datetime(2026-01-16T00:00:00Z);
-let suspicious_file = "daniel_richardson_cv.pdf.exe";
-union DeviceFileEvents, DeviceProcessEvents
-| where TimeGenerated between (start_time .. end_time)
-| where DeviceName == "as-pc1"
-// Looking for the file acting as either the main process or the parent process
-| where FileName =~ suspicious_file or InitiatingProcessFileName =~ suspicious_file
-// Grab both hash columns just in case it's hiding in the parent context
-| project TimeGenerated, 
-          ActionType, 
-          FileName, 
-          SHA256, 
-          InitiatingProcessFileName, 
-          InitiatingProcessSHA256, 
-          FolderPath
-| order by TimeGenerated asc
-| take 5
+DeviceLogonEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl"
+| where AdditionalFields.IsLocalLogon == "false"
+| project TimeGenerated, AccountName, RemoteIP, RemoteDeviceName, LogonType, AdditionalFields
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- SHA256: `48b97fd91946e81e3e7742b3554585360551551cbf9398e1f34f4bc4eac3a6b5`
-- This exact hash reappears as the persistence payload (`RuntimeBroker.exe`) in Section 7, confirming binary reuse
+- Account `kenji.sato` performed remote login
+- Login originated from external IP
 
 **Analysis**
-We can use the KQL query above to identify the hash, but we can also find it under Image file SHA256 in the alert timeline. Capturing the hash at this stage provides an immediate IOC for blocking and hunting. The significance of this hash becomes clear in Section 7: the same SHA256 appears on the scheduled task persistence binary renamed `RuntimeBroker.exe`. The attacker reused the same binary and simply renamed it for each purpose, initial access and long-term persistence. This reuse is a tradecraft observation worth flagging; it simplifies attribution and means a single hash-based block at the endpoint protection layer covers both the delivery artifact and the persistence mechanism.
+The attacker used valid credentials instead of exploiting a vulnerability. This confirms credential compromise as the initial access method
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                           |
 |-----------|-------------------------------------------------|
 | Tactic    | Initial Access                                  |
-| Technique | T1566.001: Phishing: Spearphishing Attachment   |
+| Technique | T1078: Valid Accounts                           |
 
 **Evidence**
-><img width="1190" height="567" alt="image" src="https://github.com/user-attachments/assets/984c99e6-2515-4ea3-bc0c-d3192b4e3c94" />
- <img width="452" height="474" alt="image" src="https://github.com/user-attachments/assets/a769c294-b253-4d89-a16a-a17e9e16f238" />
+
 
 
 ---
