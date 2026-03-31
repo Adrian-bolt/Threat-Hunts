@@ -857,50 +857,48 @@ Log clearing is used to erase evidence and delay detection.
 
 ---
 
-### 🚩 Flag 17: Persistence: Remote Tool | Download Method
+### 🚩 Flag 17: Impact | Persistence Account
 
 **Objective**
-Identify the native Windows binary used to download AnyDesk, confirming the attacker's continued reliance on living-off-the-land techniques.
+Identify attacker-created account.
 
 **Hunt Question**
-What native Windows binary was used to download the remote access tool?
+Identify the backdoor account username created by the attacker?
 
-**Answer:** `certutil.exe`
+**Answer:** `support`
 
 **Query Used**
 
 ```kql
 DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T04:10:00Z))
-| where DeviceName == "as-pc1"
-| where InitiatingProcessFileName in~ ("cmd.exe","powershell.exe","wscript.exe","mshta.exe")
-| where ProcessCommandLine has "anydesk"
-| project TimeGenerated, DeviceName, AccountName, ProcessCommandLine
-| order by TimeGenerated desc
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine has_any ("/add") //Hint 2: Look for commands with the /add parameter followed by administrator group additions.
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Download binary: `certutil.exe`
-- Usage consistent with `certutil -urlcache -f <url> <output>` for file retrieval
-- Continues the attacker's pattern of using signed Microsoft binaries for all operational steps
+- Account created using command line
+- Added for persistence
+
 
 **Analysis**
-`certutil.exe` is one of the most widely abused LOLBins in the Windows ecosystem. Its `-urlcache` flag allows arbitrary file downloads from any URL, and because it is a signed Microsoft binary, it is not blocked by most application control policies. Using it to retrieve AnyDesk continues the attacker's consistent pattern of avoiding custom tooling in favor of what Windows already provides. Detection of `certutil.exe` downloading executables from external URLs is a reliable, high-fidelity indicator that should be monitored in any environment.
+Backdoor accounts provide attackers with continued access.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                          |
 |-----------|--------------------------------|
 | Tactic    | Defense Evasion                |
-| Technique | T1105: Ingress Tool Transfer   |
+| Technique | T1136: Create Account          |
 
 **Evidence**
-> <img width="1152" height="256" alt="image" src="https://github.com/user-attachments/assets/fc51bd09-a3ac-43d4-9415-795744445891" />
+
+<img width="1498" height="506" alt="image" src="https://github.com/user-attachments/assets/90c9785e-0dbe-4c06-9e50-710f89e18c6a" />
 
 
----
 
-*With the download mechanism confirmed, the investigation located the AnyDesk configuration file.*
 
 ---
 
