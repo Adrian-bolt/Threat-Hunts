@@ -82,50 +82,27 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ---
 
-## All Flags Quick Reference
+## 4. Attack Timeline
 
-| #  | Section                        | Flag Name                  | Answer / Finding                                                     |
-|----|--------------------------------|----------------------------|----------------------------------------------------------------------|
-|  1 | Initial Access                 | Initial Vector             | `daniel_richardson_cv.pdf.exe`                                       |
-|  2 | Initial Access                 | Payload Hash               | `48b97fd91946e81e3e7742b3554585360551551cbf9398e1f34f4bc4eac3a6b5`   |
-|  3 | Initial Access                 | User Interaction           | `explorer.exe`                                                       |
-|  4 | Initial Access                 | Suspicious Child Process   | `notepad.exe`                                                        |
-|  5 | Initial Access                 | Process Arguments          | `notepad.exe ""`                                                     |
-|  6 | C2                             | C2 Domain                  | `cdn.cloud-endpoint.net`                                             |
-|  7 | C2                             | C2 Process                 | `daniel_richardson_cv.pdf.exe`                                       |
-|  8 | C2                             | Staging Infrastructure     | `sync.cloud-endpoint.net`                                            |
-|  9 | Credential Access              | Registry Targets           | `SAM`, `SYSTEM`                                                      |
-| 10 | Credential Access              | Local Staging              | `C:\Users\Public`                                                    |
-| 11 | Credential Access              | Execution Identity         | `sophie.turner`                                                      |
-| 12 | Discovery                      | User Context               | `whoami.exe`                                                         |
-| 13 | Discovery                      | Network Enumeration        | `net.exe view`                                                       |
-| 14 | Discovery                      | Local Admins               | `administrators`                                                     |
-| 15 | Persistence: Remote Tool       | Remote Tool                | `AnyDesk.exe`                                                        |
-| 16 | Persistence: Remote Tool       | Remote Tool Hash           | `f42b635d93720d1624c74121b83794d706d4d064bee027650698025703d20532`   |
-| 17 | Persistence: Remote Tool       | Download Method            | `certutil.exe`                                                       |
-| 18 | Persistence: Remote Tool       | Configuration Access       | `C:\Users\Sophie.Turner\AppData\Roaming\AnyDesk\system.conf`         |
-| 19 | Persistence: Remote Tool       | Access Credentials         | `intrud3r!`                                                          |
-| 20 | Persistence: Remote Tool       | Deployment Footprint       | `as-pc1`, `as-pc2`, `as-srv`                                         |
-| 21 | Lateral Movement               | Failed Execution           | `wmic.exe`, `psexec.exe`                                             |
-| 22 | Lateral Movement               | Target Host                | `as-pc2`                                                             |
-| 23 | Lateral Movement               | Successful Pivot           | `mstsc.exe`                                                          |
-| 24 | Lateral Movement               | Movement Path              | `as-pc1` > `as-pc2` > `as-srv`                                       |
-| 25 | Lateral Movement               | Compromised Account        | `david.mitchell`                                                     |
-| 26 | Lateral Movement               | Account Activation         | `/active:yes`                                                        |
-| 27 | Lateral Movement               | Activation Context         | `david.mitchell`                                                     |
-| 28 | Persistence: Scheduled Task    | Scheduled Persistence      | `MicrosoftEdgeUpdateCheck`                                           |
-| 29 | Persistence: Scheduled Task    | Renamed Binary             | `RuntimeBroker.exe`                                                  |
-| 30 | Persistence: Scheduled Task    | Persistence Hash           | `48b97fd91946e81e3e7742b3554585360551551cbf9398e1f34f4bc4eac3a6b5`   |
-| 31 | Persistence: Scheduled Task    | Backdoor Account           | `svc_backup`                                                         |
-| 32 | Data Access                    | Sensitive Document         | `BACS_Payments_Dec2025.ods`                                          |
-| 33 | Data Access                    | Modification Evidence      | `.~lock.BACS_Payments_Dec2025.ods#`                                  |
-| 34 | Data Access                    | Access Origin              | `as-pc2`                                                             |
-| 35 | Data Access                    | Exfil Archive              | `Shares.7z`                                                          |
-| 36 | Data Access                    | Archive Hash               | `6886c0a2e59792e69df94d2cf6ae62c2364fda50a23ab44317548895020ab048`   |
-| 37 | Anti-Forensics                 | Log Clearing               | `Security`, `System`, `Application`                                  |
-| 38 | Anti-Forensics                 | Reflective Loading         | `ClrUnbackedModuleLoaded`                                            |
-| 39 | Anti-Forensics                 | Memory Tool                | `SharpChrome`                                                        |
-| 40 | Anti-Forensics                 | Host Process               | `notepad.exe`                                                        |
+## Attack Timeline
+
+| Timestamp (UTC)       | Tactic              | Action                                                                 | Key Artifact                          |
+|----------------------|--------------------|------------------------------------------------------------------------|----------------------------------------|
+| 2025-11-19 18:36:18  | Initial Access     | RDP login to `azuki-sl` using compromised account                      | `88.97.178.12`, `kenji.sato`          |
+| 2025-11-19 18:37:26  | Command & Control  | Initial outbound connection to attacker-controlled server              | `78.141.196.6`                        |
+| 2025-11-19 18:49:27  | Defense Evasion    | Windows Defender exclusions added (extensions + temp directory)        | Registry modifications                |
+| 2025-11-19 19:03:18  | Execution          | Malicious script executed to automate attack chain                     | `wupdate.ps1`                         |
+| 2025-11-19 19:04:01  | Discovery          | Network enumeration performed using `arp.exe -a`                       | `arp.exe`                             |
+| 2025-11-19 19:05:33  | Defense Evasion    | Malware staged in hidden directory                                     | `C:\ProgramData\WindowsCache`         |
+| 2025-11-19 19:06:58  | Execution          | Additional payload downloaded using `certutil.exe`                     | `certutil.exe`                        |
+| 2025-11-19 19:07:46  | Persistence        | Scheduled task created for persistence                                 | `"Windows Update Check"`              |
+| 2025-11-19 19:08:26  | Credential Access  | Credential dumping tool executed                                       | `mm.exe`, `sekurlsa::logonpasswords`  |
+| 2025-11-19 19:08:58  | Collection         | Data compressed into archive                                           | `export-data.zip`                     |
+| 2025-11-19 19:09:21  | Exfiltration       | Data transmitted externally over HTTPS (Discord channel)               | Port `443`, `Discord`                 |
+| 2025-11-19 19:09:48  | Persistence        | Backdoor account created                                               | `support`                             |
+| 2025-11-19 19:10:37  | Lateral Movement   | Attempted RDP connection to internal system                            | `10.1.0.188`                          |
+| 2025-11-19 19:10:41  | Lateral Movement   | RDP tool executed                                                      | `mstsc.exe`                           |
+| 2025-11-19 19:11:39  | Anti-Forensics     | Security logs cleared to hide attacker activity                        | `wevtutil.exe`                        |
 
 ---
 
