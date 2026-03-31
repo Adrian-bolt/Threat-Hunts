@@ -135,22 +135,6 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 
 
-
-### Kill Chain Diagram
-
-```mermaid
-flowchart LR
-    A[Social Engineering<br/>Double-Extension CV] --> B[Execution and C2<br/>daniel_richardson_cv.pdf.exe]
-    B --> C[Discovery<br/>whoami / net view / localgroup]
-    C --> D[Credential Access<br/>SAM + SYSTEM reg dump]
-    D --> E[Persistence<br/>AnyDesk on all 3 hosts]
-    E --> F[Lateral Movement<br/>as-pc1 to as-pc2 to as-srv via RDP]
-    F --> G[Persistence<br/>Scheduled Task + svc_backup]
-    G --> H[Data Access<br/>BACS_Payments_Dec2025.ods]
-    H --> I[Anti-Forensics<br/>Log clearing + notepad decoy]
-    I --> J[Credential Access<br/>SharpChrome in-memory via notepad.exe]
-```
-
 ---
 
 ## Flag-by-Flag Analysis
