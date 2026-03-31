@@ -13,18 +13,17 @@
 
 ## Table of Contents
 
-1. [Executive Summary](#1-executive-summary)
-2. [Environment Overview](#2-Environment Overview)
-3. [Environment & Hunt Scope](#environment--hunt-scope)
-4. [All Flags Quick Reference](#all-flags-quick-reference)
-5. [Attack Timeline](#attack-timeline)
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [Environment Overview](#environment-overview)
+3. [Key Findings](#key-findings)
+4. [Attack Timeline](#attack-timeline)
+5. [All Flags Quick Reference](#all-flags-quick-reference)
 6. [Flag-by-Flag Analysis](#flag-by-flag-analysis)
 7. [Conclusion](#conclusion)
-8. [Remediation Recommendations](#remediation-recommendations)
-9. [MITRE ATT&CK Mapping](#mitre-attck-mapping)
-10. [Final Thoughts & What I Learned](#final-thoughts--what-i-learned)
-11. [Credits](#credits)
-12. [Disclaimer](#disclaimer)
+8. [MITRE ATT&CK Mapping](#mitre-attck-mapping)
+9. [Recommendations](#recommendations)
 
 ---
 
