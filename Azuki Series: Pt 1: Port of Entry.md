@@ -38,15 +38,17 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ## 2. Environment Overview
 
-- Confirmed initial access via a double-extension masqueraded file (`daniel_richardson_cv.pdf.exe`, SHA256: `48b97fd91946e81e3e7742b3554585360551551cbf9398e1f34f4bc4eac3a6b5`) executed through `explorer.exe`; user interaction confirmed
-- Identified C2 communication to `cdn.cloud-endpoint.net` and secondary staging from `sync.cloud-endpoint.net`, initiated directly by the payload for the full duration of the operation
-- Registry credential theft confirmed: `SAM` and `SYSTEM` hives extracted by `sophie.turner` and staged at `C:\Users\Public`
-- AnyDesk deployed as a persistent remote access mechanism across all three hosts using `certutil.exe`, with hardcoded unattended access password (`intrud3r!`) visible in process telemetry
-- Lateral movement path confirmed: `as-pc1` > `as-pc2` > `as-srv` via RDP using `david.mitchell` after `wmic.exe` and `psexec.exe` failed; account re-enabled from disabled state to facilitate movement
-- Three persistence mechanisms identified: AnyDesk remote access tool, scheduled task `MicrosoftEdgeUpdateCheck` using the renamed initial payload (`RuntimeBroker.exe`), and backdoor local account `svc_backup`
-- Sensitive financial data accessed on `as-srv`: `BACS_Payments_Dec2025.ods` opened for editing via LibreOffice from `as-pc2` and archived as `Shares.7z` for staging
-- Anti-forensics confirmed: `Security`, `System`, and `Application` event logs cleared via `wevtutil`; SharpChrome loaded reflectively into `notepad.exe` via `ClrUnbackedModuleLoaded` to steal browser credentials without touching disk
-- 40 flags resolved across 9 attack phases
+| Host    | Role                     | OS        | Compromise Status       |
+|---------|--------------------------|-----------|-------------------------|
+| AS-PC1  | Employee workstation     | Windows   | Not compromised         |
+| AS-PC2  | Employee workstation     | Windows   | **Initial access host** |
+| AS-SRV  | Domain / file server     | Windows   | **Encrypted**           |
+
+**Victim Organization:** Ashford Sterling Recruitment (fictional)
+**Incident Date:** January 27, 2026
+**Ransomware Family:** Akira
+**Victim TOR Portal:** `http://akiral2iz6a7qgd3ayp3l6yub7xx2uep76idk3u2kollpj5z3z636bad.onion`
+**Victim ID:** `813R-QM3H-XX13`
 
 ---
 
