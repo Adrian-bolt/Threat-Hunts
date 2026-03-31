@@ -364,51 +364,46 @@ By excluding file extensions, the attacker ensured certain files would not be sc
 
 ---
 
-### 🚩 Flag 6: Command and Control | C2 Domain
+### 🚩 Flag 6: Defence Evasion | Temporary Folder Exclusion
 
 **Objective**
-Identify the domain used for C2 communication to enable network-layer blocking and infrastructure attribution.
+Identify excluded directories from security scanning.
 
 **Hunt Question**
-What domain did the payload use to establish its C2 channel?
+What temporary folder path was excluded from Windows Defender scanning?
 
-**Answer:** `cdn.cloud-endpoint.net`
+**Answer:** `C:\Users\KENJI~1.SAT\AppData\Local\Temp`
 
 **Query Used**
 
 ```kql
-DeviceNetworkEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == "as-pc1"
-| where InitiatingProcessFileName contains ".pdf.exe"
-| where RemoteUrl != ""
-| project TimeGenerated, DeviceName, RemoteUrl, RemoteIP, InitiatingProcessFileName
-| order by TimeGenerated asc
+ DeviceRegistryEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where RegistryKey contains "Exclusions\\Paths"
+| project TimeGenerated, DeviceName, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- C2 domain: `cdn.cloud-endpoint.net`
-- Connections initiated directly by the payload process throughout the operation
-- Domain styled to resemble a legitimate CDN service, designed to blend into normal enterprise DNS traffic
+- Temp directory excluded from scanning
+- Common malware execution location
+
 
 **Analysis**
-`cdn.cloud-endpoint.net` is crafted to appear benign. The `cdn` subdomain prefix is widely associated with legitimate **c**ontent **d**elivery **n**etworks, and the parent domain sounds like the kind of infrastructure a SaaS vendor might use. Without the process context linking it to `daniel_richardson_cv.pdf.exe`, this domain could easily be dismissed as routine traffic during a quick log review.
-
-For defenders, this naming pattern, CDN-themed subdomains on generic cloud-sounding TLDs, should inform broader detection logic rather than a single indicator block. The entire `cloud-endpoint.net` domain should be actioned at the proxy and DNS layer, with retrospective hunting covering all subdomains.
+Excluding the temp folder allows malware to run freely without triggering Defender alerts.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                                   |
 |-----------|---------------------------------------------------------|
 | Tactic    | Command and Control                                     |
-| Technique | T1071.001: Application Layer Protocol: Web Protocols    |
+| Technique | T1562: Impair Defenses                                  |
 
 **Evidence**
-> <img width="981" height="248" alt="image" src="https://github.com/user-attachments/assets/2ff40794-0ae7-4ef9-90df-c48addbfe54c" />
 
----
+<img width="1501" height="451" alt="image" src="https://github.com/user-attachments/assets/34132809-1b41-4f3a-9d49-b7e2a9968ed7" />
 
-*With the C2 domain confirmed, the investigation validated which process was responsible for the outbound traffic.*
 
 ---
 
