@@ -106,24 +106,35 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ---
 
-## Attack Timeline
+## 5. All Flags Quick Reference
 
-> **Analyst Note:** By tracking `InitiatingProcessFileName` across the full intrusion window, we confirmed that `daniel_richardson_cv.pdf.exe` remained active as the primary C2 agent for the entire operation (over an hour) before finally spawning `notepad.exe` at 05:09:53Z as a dedicated injection host for the final credential theft. This is not a dropper that terminates after delivery; it is a persistent agent.
+| #  | Section              | Flag Name                     | Answer / Finding                                      |
+|----|---------------------|------------------------------|------------------------------------------------------|
+|  1 | Initial Access      | Remote Access Source         | `88.97.178.12`                                       |
+|  2 | Initial Access      | Compromised Account          | `kenji.sato`                                         |
+|  3 | Discovery           | Network Reconnaissance       | `arp.exe -a`                                         |
+|  4 | Defense Evasion     | Malware Staging Directory    | `C:\ProgramData\WindowsCache`                        |
+|  5 | Defense Evasion     | File Extension Exclusions    | `3`                                                  |
+|  6 | Defense Evasion     | Temp Folder Exclusion        | `C:\Users\KENJI~1.SAT\AppData\Local\Temp`            |
+|  7 | Defense Evasion     | Download Utility Abuse       | `certutil.exe`                                       |
+|  8 | Persistence         | Scheduled Task Name          | `Windows Update Check`                               |
+|  9 | Persistence         | Scheduled Task Target        | `C:\ProgramData\WindowsCache\svchost.exe`            |
+| 10 | Command & Control   | C2 Server Address            | `78.141.196.6`                                       |
+| 11 | Command & Control   | C2 Communication Port        | `443`                                                |
+| 12 | Credential Access   | Credential Dumping Tool      | `mm.exe`                                             |
+| 13 | Credential Access   | Memory Extraction Module     | `sekurlsa::logonpasswords`                           |
+| 14 | Collection          | Data Archive                 | `export-data.zip`                                    |
+| 15 | Exfiltration        | Exfiltration Channel         | `Discord`                                            |
+| 16 | Anti-Forensics      | Log Tampering                | `Security`                                           |
+| 17 | Persistence         | Backdoor Account             | `support`                                            |
+| 18 | Execution           | Malicious Script             | `wupdate.ps1`                                        |
+| 19 | Lateral Movement    | Target System                | `10.1.0.188`                                         |
+| 20 | Lateral Movement    | Remote Access Tool           | `mstsc.exe`                                          |
 
-| Timestamp (UTC)      | Tactic                | Action                                                                               | Key Artifact                        |
-|----------------------|-----------------------|--------------------------------------------------------------------------------------|-------------------------------------|
-| 2026-01-15 03:58:55  | Initial Access        | User executes double-extension CV payload on `as-pc1` via `explorer.exe`             | `daniel_richardson_cv.pdf.exe`      |
-| 2026-01-15 04:01:19  | Discovery             | Payload executes `whoami.exe`, `net view`, `net localgroup administrators`           | `whoami.exe`, `net.exe`             |
-| 2026-01-15 04:08:29  | Persistence           | Payload spawns `cmd.exe` to download AnyDesk via `certutil.exe`                      | `certutil.exe`                      |
-| 2026-01-15 04:13:32  | Credential Access     | `SAM` and `SYSTEM` hives dumped by `sophie.turner` to `C:\Users\Public`              | `reg.exe save`                      |
-| 2026-01-15 04:18:44  | Lateral Movement      | Failed remote execution attempts against `as-pc2` via `wmic.exe`                     | `wmic.exe`, `psexec.exe`            |
-| 2026-01-15 04:29:43  | Lateral Movement      | Attacker pivots to RDP after failed attempts; `mstsc.exe` launched                   | `mstsc.exe`                         |
-| 2026-01-15 04:40:56  | Lateral Movement      | Successful RDP logon to `as-pc2` as `david.mitchell`; AnyDesk + tasks deployed       | `david.mitchell`                    |
-| 2026-01-15 04:44:06  | Collection            | LibreOffice (`soffice.exe`) creates lock file on `as-srv` network share              | `.~lock.BACS_Payments_Dec2025.ods#` |
-| 2026-01-15 04:59:04  | Collection            | Exfiltration archive created on `as-srv`                                             | `Shares.7z`                         |
-| 2026-01-15 05:07:59  | Anti-Forensics        | Original payload spawns `wevtutil.exe`; Security and System logs cleared on `as-pc1` | `wevtutil cl`                       |
-| 2026-01-15 05:09:53  | Defense Evasion       | Payload spawns blank decoy process: `notepad.exe ""`                                 | `notepad.exe`                       |
-| 2026-01-15 05:10:08  | Credential Access     | SharpChrome loaded reflectively into `notepad.exe` memory space                      | `ClrUnbackedModuleLoaded`           |
+
+
+
+
 
 ### Kill Chain Diagram
 
