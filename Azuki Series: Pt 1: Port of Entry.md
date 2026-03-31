@@ -677,49 +677,49 @@ The attacker used `mm.exe` to dump credentials from memory to escalate access.
 
 ---
 
-### 🚩 Flag 13: Discovery | Network Enumeration
+### 🚩 Flag 13: Credential Access | Memory Extraction Module
 
 **Objective**
-Identify the command used to enumerate network shares, establishing what resources the attacker identified as potential lateral movement and data access targets.
+Identify method used to extract credentials.
 
 **Hunt Question**
-What command was used to enumerate available network shares?
+Identify the module used to extract logon passwords from memory?
 
-**Answer:** `net view`
+**Answer:** `sekurlsa::logonpasswords`
 
 **Query Used**
 
 ```kql
 DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T04:10:00Z))
-| where DeviceName == "as-pc1"
-| where FileName in ("net.exe", "net1.exe")
-| where ProcessCommandLine contains "view"
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
-| order by TimeGenerated asc
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine contains "::"   //Hint 2: Look for module::command
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Command executed: `net view` without arguments, listing all visible hosts and shares on the network
-- Executed in close temporal proximity to `whoami.exe`, indicating a sequential post-exploitation discovery checklist
+- Memory extraction command executed
+- Indicates credential harvesting
 
 **Analysis**
-`net view` queries the network for visible hosts and shared resources. In an Active Directory environment, this reveals servers, workstations, and their exposed shares, exactly the information an attacker needs to identify file servers and determine which systems are worth pivoting to. The identification of `as-srv` as a file server through this enumeration step directly informed the later data access phase. Correlating `whoami`, `net view`, and local group enumeration in a short time window from a non-administrative user account is a strong behavioral indicator of post-compromise reconnaissance.
+This module extracts plaintext credentials from memory, allowing attackers to move laterally.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                          |
 |-----------|--------------------------------|
 | Tactic    | Discovery                      |
-| Technique | T1135: Network Share Discovery |
+| Technique | T1003: OS Credential Dumping   |
 
 **Evidence**
-> <img width="1007" height="262" alt="image" src="https://github.com/user-attachments/assets/a4deae04-7bbd-49e6-b01b-4ce5969110ea" />
+
+<img width="1498" height="517" alt="image" src="https://github.com/user-attachments/assets/8291b960-3395-415f-8628-c90e5363a3a6" />
 
 
----
 
-*With network resources mapped, the attacker enumerated local group membership.*
+
+
 
 ---
 
