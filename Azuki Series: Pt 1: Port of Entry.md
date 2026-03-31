@@ -423,7 +423,7 @@ Identify the Windows-native binary the attacker abused to download files?
 DeviceProcessEvents
 | where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
 | where DeviceName =~ "azuki-sl"
-| where ProcessCommandLine has_any ("powershell.exe", "cmd.exe", "certutil.exe", "rundll32.exe", "wscript.exe", "reg.exe", "te.exe", "PsExec.exe") 
+| where ProcessCommandLine has_any ("certutil.exe") 
 | project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
 | sort by Timestamp asc
 ```
@@ -452,57 +452,48 @@ Using built-in tools like `certutil.exe` helps attackers blend in and avoid dete
 
 ---
 
-### 🚩 Flag 8: Command and Control | Staging Infrastructure
+### 🚩 Flag 8: Persistence | Scheduled Task Name
 
 **Objective**
-Identify the second attacker-controlled domain used to host and deliver additional payloads, indicating deliberate infrastructure separation.
+Identify persistence mechanism.
 
 **Hunt Question**
-What domain was used for secondary payload staging?
+Identify the name of the scheduled task created for persistence?
 
-**Answer:** `sync.cloud-endpoint.net`
+**Answer:** `Windows Update Check`
 
 **Query Used**
 
 ```kql
-DeviceNetworkEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T05:15:00Z))
-| where RemoteUrl endswith "cloud-endpoint.net"
-| project TimeGenerated,
-    ActionType,
-    RemoteUrl,
-    DeviceName,
-    InitiatingProcessAccountName,
-    InitiatingProcessCommandLine,
-    RemoteIP,
-    InitiatingProcessRemoteSessionDeviceName,
-    InitiatingProcessRemoteSessionIP
-| order by TimeGenerated asc
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine has_any ("schtasks.exe")
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Staging domain: `sync.cloud-endpoint.net`
-- Same parent domain as C2 (`cloud-endpoint.net`) but different subdomain
-- Separation of C2 (`cdn`) and staging (`sync`) is a deliberate infrastructure design choice
+- Scheduled task created
+- Legitimate-looking name
+ 
 
 **Analysis**
-Scoping the query to the parent domain `cloud-endpoint.net` rather than a specific subdomain is the correct approach: attacker infrastructure commonly shares a parent domain across functions, with subdomains separating C2 traffic from staging, exfiltration, or redirectors. The query's breadth is also why it surfaces useful corroborating context such as device names, account names, and command lines, which builds the wider picture as the investigation progresses.
+Attackers use trusted-looking names to avoid suspicion and maintain persistence.
 
-Using separate subdomains for C2 and payload staging reduces the blast radius when one domain is blocked; the attacker retains the other. If `cdn.cloud-endpoint.net` is sinkholed, stage-two payloads can still be retrieved from `sync.cloud-endpoint.net`. Both subdomains share the same naming pattern designed to blend with legitimate enterprise traffic, meaning blocking one in isolation provides only partial protection. The entire parent domain requires actioning.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                             |
 |-----------|---------------------------------------------------|
 | Tactic    | Resource Development                              |
-| Technique | T1608.001: Stage Capabilities: Upload Malware     |
+| Technique | T1053: Scheduled Task/Job                         |
 
 **Evidence**
-> <img width="1208" height="350" alt="image" src="https://github.com/user-attachments/assets/6d3fc636-78b0-42b8-ab93-6c45a58e2252" />
 
----
+<img width="1499" height="512" alt="image" src="https://github.com/user-attachments/assets/79f59334-0fa3-446f-a251-b8d95550abe8" />
 
-*With the C2 infrastructure fully documented, the investigation shifted to credential access activity.*
+
 
 ---
 
