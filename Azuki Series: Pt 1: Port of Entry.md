@@ -497,53 +497,47 @@ Attackers use trusted-looking names to avoid suspicion and maintain persistence.
 
 ---
 
-### 🚩 Flag 9: Credential Access | Registry Targets
+### 🚩 Flag 9: Persistence | Scheduled Task Target
 
 **Objective**
-Identify which Windows registry hives were targeted for extraction to establish what authentication material was compromised.
+Identify payload executed by scheduled task.
 
 **Hunt Question**
-What two registry hives were targeted by the attacker?
+Identify the executable path configured in the scheduled task?
 
-**Answer:** `SAM`, `SYSTEM`
+**Answer:** `C:\ProgramData\WindowsCache\svchost.exe`
 
 **Query Used**
 
 ```kql
 DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T04:00:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == "as-pc1"
-| where FileName == "reg.exe"
-| where ProcessCommandLine has_any ("save", "export")
-| where ProcessCommandLine has_any ("SAM", "SYSTEM", "SECURITY")
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
-| order by TimeGenerated asc
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine has_any ("schtasks.exe")
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Registry hives targeted: `SAM` and `SYSTEM`
-- `reg save` used to extract both hives as files for offline processing
-- Both hives are required together to decrypt NTLM password hashes from local accounts
+- Scheduled task configured to run executable
+- Binary located in non-standard directory
+- File name mimics legitimate system process
 
 **Analysis**
-The `SAM` (Security Account Manager) hive stores local user account credentials as NTLM hashes, but those hashes are encrypted with a bootkey derived from the `SYSTEM` hive. Extracting both is the standard procedure for offline NTLM hash cracking; neither hive alone provides usable credential material. The attacker demonstrated knowledge of this dependency by targeting both in the same operation.
-
-Using the built-in `reg.exe` utility avoids dropping dedicated credential theft tooling to disk at this stage. The `SECURITY` hive, which stores cached domain credentials, was not confirmed in scope, suggesting the attacker's immediate focus was on local account material. The later use of SharpChrome for browser credentials indicates they returned for additional credential sources once persistence was secured.
-
+The attacker disguised malware as `svchost.exe` to blend in with legitimate system processes while maintaining persistence.
+ 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                                          |
 |-----------|----------------------------------------------------------------|
 | Tactic    | Credential Access                                              |
-| Technique | T1003.002: OS Credential Dumping: Security Account Manager     |
+| Technique | T1036: Masquerading                                            |
 
 **Evidence**
-> <img width="1138" height="290" alt="image" src="https://github.com/user-attachments/assets/9a82162b-0e65-4e0e-bf1d-07a2ee3e68c1" />
+
+<img width="1496" height="447" alt="image" src="https://github.com/user-attachments/assets/0d21afc6-ae30-41ad-8abe-7f861b4fa14b" />
 
 
----
-
-*With the hives identified, the investigation located where the extracted files were written to disk.*
 
 ---
 
