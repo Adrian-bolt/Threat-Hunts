@@ -183,8 +183,6 @@ We used `DeviceLogonEvents` because RDP activity shows up as login events. The p
 
 
 
----
-
 ### 🚩 Flag 2: Initial Access | Payload Hash
 
 **Objective**
