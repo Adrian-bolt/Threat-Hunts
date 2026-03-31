@@ -416,7 +416,7 @@ Excluding the temp folder allows malware to run freely without triggering Defend
 ### 🚩 Flag 7: Defence Evasion | Download Utility Abuse
 
 **Objective**
-dentify how malware was downloaded.
+Identify how malware was downloaded.
 
 **Hunt Question**
 Identify the Windows-native binary the attacker abused to download files?
