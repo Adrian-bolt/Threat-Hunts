@@ -38,17 +38,15 @@ This investigation found that an attacker broke into the Azuki system by logging
 
 ## 2. Environment Overview
 
-| Host    | Role                     | OS        | Compromise Status       |
-|---------|--------------------------|-----------|-------------------------|
-| AS-PC1  | Employee workstation     | Windows   | Not compromised         |
-| AS-PC2  | Employee workstation     | Windows   | **Initial access host** |
-| AS-SRV  | Domain / file server     | Windows   | **Encrypted**           |
+| Host     | Role                     | OS      | Compromise Status        |
+|----------|--------------------------|---------|--------------------------|
+| azuki-sl | Primary workstation      | Windows | **Fully compromised**    |
 
-**Victim Organization:** Ashford Sterling Recruitment (fictional)
-**Incident Date:** January 27, 2026
-**Ransomware Family:** Akira
-**Victim TOR Portal:** `http://akiral2iz6a7qgd3ayp3l6yub7xx2uep76idk3u2kollpj5z3z636bad.onion`
-**Victim ID:** `813R-QM3H-XX13`
+**Victim Organization:** Azuki Environment (Cyber Range)  
+**Incident Date:** November 19, 2025  
+**Attack Type:** Multi-stage intrusion (RDP → Persistence → Credential Access → Exfiltration)  
+**C2 Server:** `78.141.196.6`  
+**Exfiltration Channel:** `Discord`  
 
 ---
 
