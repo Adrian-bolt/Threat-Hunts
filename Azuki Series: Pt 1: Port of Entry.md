@@ -181,7 +181,7 @@ We used `DeviceLogonEvents` because RDP activity shows up as login events. The p
 
 ---
 
-*With the initial vector confirmed, the investigation captured the file hash to enable IOC tracking and retrospective hunting.*
+
 
 ---
 
