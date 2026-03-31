@@ -723,50 +723,48 @@ This module extracts plaintext credentials from memory, allowing attackers to mo
 
 ---
 
-### 🚩 Flag 14: Discovery | Local Admins
+### 🚩 Flag 14: Collection | Data Staging Archive
 
 **Objective**
-Identify which local group the attacker queried to enumerate privileged accounts on the compromised host.
+Identify collected data prior to exfiltration.
 
 **Hunt Question**
-What local group was queried by the attacker?
+Identify the compressed archive filename used for data exfiltration?
 
-**Answer:** `administrators`
+**Answer:** `export-data.zip`
 
 **Query Used**
 
 ```kql
-DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T04:10:00Z))
-| where DeviceName == "as-pc1"
-| where FileName in ("net.exe", "net1.exe")
-| where ProcessCommandLine contains "localgroup"
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
-| order by TimeGenerated asc
+DeviceFileEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where FileName contains ".zip"  //Hint 1: Search for ZIP file creation in the staging directory during the collection phase.
+| project TimeGenerated, DeviceName, FileName, FolderPath, SHA256, InitiatingProcessFileName, InitiatingProcessCommandLine
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- Group queried: `Administrators`
-- Full command consistent with `net localgroup Administrators`
-- Reveals which accounts hold local administrative rights on the machine
+- Archive created in staging phase
+- Indicates data collection complete
+
 
 **Analysis**
-Querying the local `Administrators` group tells the attacker which accounts can perform privileged operations locally. This information directly informs the persistence and lateral movement phases: knowing the local admin landscape helps the attacker choose which existing accounts to leverage, whether their current context has sufficient rights, and what needs to be created or elevated for durable access. This recon step connects directly to the backdoor account creation (`svc_backup`) in Section 7.
+The attacker compressed data to prepare it for exfiltration.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                                |
 |-----------|------------------------------------------------------|
 | Tactic    | Discovery                                            |
-| Technique | T1069.001: Permission Groups Discovery: Local Groups |
+| Technique | T1560: Archive Collected Data                        |
 
 **Evidence**
-> <img width="1029" height="281" alt="image" src="https://github.com/user-attachments/assets/256a3ffa-be4e-40a9-a7e6-362ce4e2a1b6" />
+
+<img width="1497" height="515" alt="image" src="https://github.com/user-attachments/assets/31405e91-493c-446d-adbe-3f7ef4f1784f" />
 
 
----
 
-*With discovery complete, the investigation tracked the attacker's first persistence action: deploying AnyDesk.*
 
 ---
 
