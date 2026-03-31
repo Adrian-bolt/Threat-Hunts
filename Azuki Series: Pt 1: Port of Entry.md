@@ -295,6 +295,7 @@ Identify the PRIMARY staging directory where malware was stored?
 **Query Used**
 
 ```kql
+DeviceProcessEvents
 | where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
 | where DeviceName =~ "azuki-sl"
 | project TimeGenerated, FileName, ProcessCommandLine
