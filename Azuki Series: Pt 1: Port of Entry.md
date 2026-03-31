@@ -947,52 +947,49 @@ The script likely automated multiple steps in the attack chain.
 
 ---
 
-### 🚩 Flag 19: Persistence: Remote Tool | Access Credentials
+### 🚩 Flag 19: Lateral Movement | Secondary Target
 
 **Objective**
-Recover the unattended access password configured for AnyDesk to understand the persistent re-entry mechanism and enable immediate credential revocation.
+Identify lateral movement target.
 
 **Hunt Question**
-What password was configured for unattended AnyDesk access?
+What IP address was targeted for lateral movement?
 
-**Answer:** `intrud3r!`
+**Answer:** `10.1.0.188`
 
 **Query Used**
 
 ```kql
 DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T04:00:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == "as-pc1"
-| where ProcessCommandLine contains "AnyDesk"
-| where ProcessCommandLine contains "set-password"
-| project TimeGenerated, DeviceName, AccountName, ProcessCommandLine
-| order by TimeGenerated asc
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine has_any ("cmdkey", "mstsc")  //Hint 2: Look for IP addresses used with cmdkey or mstsc commands near the end of the attack timeline.
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Unattended access password: `intrud3r!`
-- Password hardcoded in the AnyDesk deployment command, visible in process telemetry
-- Same password applied across all three hosts where AnyDesk was deployed
+- Internal IP targeted
+- RDP credentials prepared
+
 
 **Analysis**
-The password `intrud3r!` appearing in process command-line telemetry is an operational security failure by the attacker. Passing credentials as command-line arguments writes them into process execution logs, making them trivially recoverable from any telemetry source that captures `ProcessCommandLine`. This kind of mistake is common when attackers script their deployment for speed and convenience, trading forensic hygiene for operational efficiency.
+The attacker attempted to pivot to another system within the network.
 
-From a response perspective, this password must be treated as a known-compromised credential: any AnyDesk instance with `intrud3r!` configured is a live backdoor, even after other artifacts have been removed. Remediation must include removing AnyDesk from all three hosts and auditing for any other systems where this password may have been applied.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                        |
 |-----------|------------------------------|
 | Tactic    | Persistence                  |
-| Technique | T1219: Remote Access Software |
+| Technique | T1021: Remote Services       |
 
 **Evidence**
-> <img width="1019" height="279" alt="image" src="https://github.com/user-attachments/assets/ca590cab-3cf4-4549-b299-0c15ffdd74db" />
+
+<img width="1334" height="513" alt="image" src="https://github.com/user-attachments/assets/df3ec10d-4b4a-4f41-9a5c-2b5d039ff0cb" />
 
 
----
 
-*With the password recovered, the investigation confirmed the full deployment footprint.*
 
 ---
 
