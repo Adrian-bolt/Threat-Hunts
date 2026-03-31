@@ -1,12 +1,12 @@
 
 # SOC Incident Investigation: The BROKER — Ashford Sterling Recruitment
 
-**Analyst:** Tiernan Falcon\
-**Date Completed:** 22 February 2026\
+**Analyst:** Adrian Bolt\
+**Date Completed:** 31 March 2026\
 **Environment Investigated:** Ashford Sterling Recruitment (`as-pc1`, `as-pc2`, `as-srv`)\
 **Timeframe:** 15 January 2026, 03:58–05:10 UTC\
 **Platform:** Microsoft Defender for Endpoint (MDE) + Microsoft Sentinel — KQL / Log Analytics Workspace\
-**Source:** Cyber Range with SancLogic (Hard Difficulty)
+**Source:** Cyber Range with SancLogic  
 
 ---
 
