@@ -147,7 +147,7 @@ This investigation found that an attacker broke into the Azuki system by logging
 Identify the external source of the intrusion.
 
 **Hunt Question**
-What IP address was used to access the system?
+Identify the source IP address of the Remote Desktop Protocol connection?
 
 **Answer:** `88.97.178.12`
 
