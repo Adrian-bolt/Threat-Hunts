@@ -276,56 +276,46 @@ The attacker began mapping the environment immediately after access to identify 
 
 ---
 
-### 🚩 Flag 4: Initial Access | Suspicious Child Process
+### 🚩 Flag 4: Defence Evasion | Malware Staging Directory
 
 **Objective**
-Identify the child process spawned by the payload at the end of the intrusion to understand its role as a process injection host.
+Identify where the attacker stored malware on the system.
 
 **Hunt Question**
-What legitimate Windows process was spawned by the payload as a child process?
+Identify the PRIMARY staging directory where malware was stored?
 
-**Answer:** `notepad.exe`
+**Answer:** `C:\ProgramData\WindowsCache`
 
 **Query Used**
 
 ```kql
-let start_time = datetime(2026-01-14T00:00:00Z);
-let end_time = datetime(2026-01-16T00:00:00Z);
-let payload_name = "daniel_richardson_cv.pdf.exe";
-DeviceProcessEvents
-| where TimeGenerated between (start_time .. end_time)
-| where DeviceName =~ "as-pc1"
-// We set our malware as the parent (Initiating Process)
-| where InitiatingProcessFileName =~ payload_name
-// Summarize to get a clean list of all unique child processes spawned
-| summarize FirstSeen=min(TimeGenerated), ExecutionCount=count() by FileName, InitiatingProcessFileName
-| order by FirstSeen desc
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| project TimeGenerated, FileName, ProcessCommandLine
+| sort by TimeGenerated asc
+| where ProcessCommandLine has_any ("attrib") 
 ```
 
 **Key Observations**
-- Child process: `notepad.exe`
-- Spawned by the payload at 05:09:53Z, over an hour after initial execution
-- The payload acted as the C2 agent throughout the entire operation before spawning Notepad at the very end
-- Spawning occurred immediately after event log clearance at 05:07:59Z
+- Hidden files were manipulated using `attrib`
+- Activity pointed to `C:\ProgramData\WindowsCache`
+- Directory used consistently across attack steps
 
 **Analysis**
-Key element in the flag's description is *at the end of the intrusion*, so we sort by descending this time. The timing here tells the story. The payload did not spawn `notepad.exe` immediately upon infection. It ran as a native C2 agent for the full duration of the intrusion, executing discovery commands, downloading AnyDesk, dumping credentials, and clearing logs, all under its own process identity. Only at the very end, at 05:09:53Z, after the Security, System, and Application event logs had been cleared, did the payload finally spawn `notepad.exe`.
+Attackers commonly use hidden directories to store malware. The use of `attrib` indicates files were intentionally hidden to avoid detection, confirming this directory as the staging locatio
 
-This was not a decoy for the victim's benefit alone. The blank Notepad window provided a visual red herring while simultaneously serving as a clean, trusted process container for the memory-resident credential theft tool that followed seconds later. By using a trusted, signed Windows binary as the injection host, the attacker ensured that `SharpChrome` would operate under `notepad.exe`'s process context, bypassing heuristics that check for suspicious processes making unexpected API calls.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                                           |
 |-----------|-------------------------------------------------|
 | Tactic    | Defense Evasion                                 |
-| Technique | T1055: Process Injection                        |
+| Technique | T1564: Hide Artifacts                           |
 
 **Evidence**
-> <img width="852" height="498" alt="image" src="https://github.com/user-attachments/assets/3a6c1ba2-df4b-45f8-9292-c9bb9adf1bf2" />
 
----
+<img width="1495" height="479" alt="image" src="https://github.com/user-attachments/assets/81d16f87-1998-4ba0-9c43-c0a2028afd2d" />
 
-*With the child process identified, the investigation captured the exact arguments passed to it.*
 
 ---
 
