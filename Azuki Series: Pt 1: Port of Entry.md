@@ -1052,39 +1052,127 @@ Even though the attacker tried to hide their actions, the logs from Microsoft De
 
 ## Recommendations
 
-### Email and File Delivery Controls
-- Block double-extension executables (e.g., `*.pdf.exe`) at the email gateway layer
-- Enforce `Show file extensions` via Group Policy across all endpoints
-- Sandbox all inbound executable-capable attachments before delivery
 
 ### Credential Security
-- Implement LAPS to eliminate shared local admin passwords across endpoints
-- Alert on `reg save` targeting `SAM` or `SYSTEM` or `APPLICATION` executed by non-SYSTEM accounts
-- Reset `sophie.turner` and `david.mitchell`; disable and remove `svc_backup`
-- Enforce least privilege: standard users should not hold local Administrator rights
 
-### Account and Access Monitoring
-- Alert on `net user /active:yes` executed outside approved IT change windows
-- Alert on `net user /add` on any endpoint by any non-IT account
-- Monitor disabled account modification events; treat reactivation as an incident-level indicator
+- Reset credentials for `kenji.sato` immediately and investigate for reuse across other systems  
+- Enforce Multi-Factor Authentication (MFA) for all remote access (especially RDP)  
+- Disable or restrict accounts with remote login privileges unless absolutely required  
+- Monitor for abnormal login behavior (e.g., external IP logins like `88.97.178.12`)  
+
+---
 
 ### Remote Access Controls
-- Remove AnyDesk from `as-pc1`, `as-pc2`, and `as-srv` immediately
-- Block unapproved commercial remote access tools via application control policy
-- Restrict RDP to management jump hosts only; deny peer-to-peer RDP via host-based firewall GPO
-- Alert on `certutil.exe` with `-urlcache` downloading executables from external URLs
 
-### Endpoint Detection Improvements
-- Alert on `ClrUnbackedModuleLoaded` where `InitiatingProcessFileName` is not a known development tool
-- Alert on `wevtutil cl` executed by any non-SYSTEM process
-- Monitor `notepad.exe` for unexpected child processes, network connections, or module loads
-- Correlate `whoami`, `net view`, `net localgroup` in sequence within a short window as a discovery cluster
+- Restrict RDP access to approved IP ranges or VPN-only access  
+- Block direct external RDP connections to endpoints  
+- Alert on `LogonType == RemoteInteractive` from external IPs  
+- Monitor and alert on `mstsc.exe` usage between internal systems  
 
-### Data Protection
-- Restrict access to BACS payment files to named users with documented business justification
-- Alert on `.~lock.` file creation in sensitive network share directories
-- Alert on archive creation (`.7z`, `.zip`) in non-standard directories outside known backup paths
-- Enable file access auditing on financial directories on `as-srv`
+---
+
+### Endpoint Hardening (Defender Protection)
+
+- Prevent modification of Windows Defender exclusions via Group Policy  
+- Alert on changes to:
+  - `Exclusions\Extensions`
+  - `Exclusions\Paths`
+- Specifically monitor exclusions involving:
+  - Temp directories (`AppData\Local\Temp`)  
+- Enable tamper protection in Microsoft Defender  
+
+---
+
+### Living-Off-the-Land Binary (LOLBins) Monitoring
+
+- Alert on suspicious use of:
+  - `certutil.exe`
+  - `powershell.exe`
+  - `cmd.exe`
+- Specifically detect:
+  - `certutil.exe -urlcache` downloading files  
+- Block or restrict LOLBins via application control policies where possible  
+
+---
+
+### Persistence Detection
+
+- Alert on `schtasks.exe` usage outside of approved administrative activity  
+- Monitor creation of scheduled tasks with suspicious names (e.g., "Windows Update Check")  
+- Alert on new local account creation using:
+  - `net user /add`  
+- Monitor addition of accounts to administrator groups  
+
+---
+
+### Credential Dumping Detection
+
+- Alert on execution of credential dumping tools such as `mm.exe`  
+- Detect commands containing:
+  - `sekurlsa::logonpasswords`  
+- Monitor access to LSASS memory  
+- Enable Credential Guard where possible  
+
+---
+
+### Command & Control (C2) Detection
+
+- Block or alert on outbound connections to suspicious IPs like `78.141.196.6`  
+- Monitor outbound traffic on port `443` that originates from:
+  - LOLBins (certutil, PowerShell, curl, etc.)  
+- Use threat intelligence feeds to identify known malicious infrastructure  
+
+---
+
+### Data Exfiltration Monitoring
+
+- Alert on outbound connections to cloud platforms such as Discord  
+- Monitor unusual upload behavior from endpoints  
+- Alert on archive creation (`.zip`) in non-standard directories  
+- Monitor staging locations like:
+  - `C:\ProgramData\WindowsCache`  
+
+---
+
+### Anti-Forensics Detection
+
+- Alert on `wevtutil.exe` execution, especially:
+  - `wevtutil cl` (log clearing)  
+- Treat log deletion as a high-severity incident  
+- Ensure logs are forwarded to a centralized SIEM (so attackers cannot delete them locally)  
+
+---
+
+### File and Directory Monitoring
+
+- Monitor suspicious directories such as:
+  - `C:\ProgramData\WindowsCache`  
+- Alert on hidden file activity using:
+  - `attrib` commands  
+- Track execution of files in non-standard directories  
+
+---
+
+### Lateral Movement Detection
+
+- Monitor use of:
+  - `mstsc.exe`
+  - `cmdkey.exe`  
+- Alert on connections to internal IPs like `10.1.0.188` from compromised hosts  
+- Restrict peer-to-peer RDP communication between endpoints  
+
+---
+
+### Logging and Visibility
+
+- Ensure full logging is enabled across:
+  - Logon events  
+  - Process execution  
+  - Network connections  
+  - Registry changes  
+- Centralize logs in Microsoft Defender / Sentinel  
+- Regularly audit logs for suspicious sequences of activity  
+
 
 ---
 
