@@ -240,57 +240,41 @@ The attacker used valid credentials instead of exploiting a vulnerability. This 
 Determine the parent process of the payload execution to confirm whether a user manually launched the file or whether it was executed through another mechanism.
 
 **Hunt Question**
-What parent process indicates how the payload was initially launched?
+Identify the command and argument used to enumerate network neighbours?
 
 **Answer:** `explorer.exe`
 
 **Query Used**
 
 ```kql
-let start_time = datetime(2026-01-14T00:00:00Z);
-let end_time = datetime(2026-01-16T00:00:00Z);
-let suspicious_file = "daniel_richardson_cv.pdf.exe";
-union DeviceFileEvents, DeviceProcessEvents
-| where TimeGenerated between (start_time .. end_time)
-| where DeviceName == "as-pc1"
-// Look for the file acting as either the main process or the parent process
-| where FileName =~ suspicious_file or InitiatingProcessFileName =~ suspicious_file
-// Grab both hash columns just in case it's hiding in the parent context
-| project TimeGenerated, 
-          InitiatingProcessParentFileName, 
-          FileName, 
-          SHA256, 
-          InitiatingProcessFileName, 
-          InitiatingProcessSHA256, 
-          FolderPath
-| order by TimeGenerated asc
-| take 5
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl"
+| where ProcessCommandLine has_any ("arp", "ipconfig", "net view", "nbtstat", "whoami", "hostname", "net user", "net localgroup", "tasklist")
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Parent process: `explorer.exe`
-- Confirms direct user double-click execution from Windows Explorer
-- No intermediary process (e.g., `outlook.exe`, browser process) in the chain
+- Command used to list network devices
+- Executed shortly after initial access
+
 
 **Analysis**
-We can quickly identify this in the alert timeline, and manually confirm it using the same query as flag 2 but add the InitiatingProcessParentFileName. `explorer.exe` as the parent process is the telemetry signature of a user manually double-clicking a file in Windows Explorer. Had the file arrived via email and been opened directly from Outlook, the parent would be `outlook.exe`. Had it been opened from a browser download, the browser process would appear as the parent. The presence of `explorer.exe` confirms a user navigated to the file and executed it, exactly the behavior expected from someone opening what they believe to be a job applicant's CV.
+The attacker began mapping the environment immediately after access to identify other systems.
 
-This matters for both investigation scope and the post-incident user awareness component. A specific user action initiated the compromise, identifying a training and control gap that needs to be addressed.
 
 **MITRE ATT&CK Mapping**
 
-| Field     | Value                                     |
-|-----------|-------------------------------------------|
-| Tactic    | Execution                                 |
-| Technique | T1204.002: User Execution: Malicious File |
+| Field     | Value                                        |
+|-----------|----------------------------------------------|
+| Tactic    | Execution                                    |
+| Technique | T1016 System Network Configuration Discovery |
 
 **Evidence**
-> <img width="1183" height="550" alt="image" src="https://github.com/user-attachments/assets/696b46e0-167c-4a57-8cfc-088b2a166dd5" />
+ 
+<img width="1499" height="512" alt="image" src="https://github.com/user-attachments/assets/f8d856e2-8578-407d-8c08-a81f29bde82c" />
 
-
----
-
-*With user execution confirmed, the investigation examined what processes the payload spawned.*
 
 ---
 
