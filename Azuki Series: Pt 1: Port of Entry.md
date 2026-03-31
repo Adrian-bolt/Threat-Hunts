@@ -554,7 +554,12 @@ Identify the IP address of the command and control server?
 **Query Used**
 
 ```kql
-78.141.196.6
+ DeviceNetworkEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where InitiatingProcessFileName in~ ("powershell.exe", "curl.exe", "certutil.exe", "wget.exe")
+| project TimeGenerated, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, RemoteUrl, RemoteIP, RemotePort
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
