@@ -1029,24 +1029,9 @@ DeviceProcessEvents
 | Technique | T1021: Remote Services       |
 
 **Evidence**
-> <img width="821" height="257" alt="image" src="https://github.com/user-attachments/assets/57b64309-d1a6-4ef7-8721-2f665b9b6b57" />
-
-<img width="1329" height="515" alt="image" src="https://github.com/user-attachments/assets/71f07c07-92ca-4b36-8a9c-9a31d66b8760" />
 
 
-
----
-
-
-**MITRE ATT&CK Mapping**
-
-| Field     | Value                                       |
-|-----------|---------------------------------------------|
-| Tactic    | Credential Access                           |
-| Technique | T1555.003: Credentials from Web Browsers    |
-
-**Evidence**
-> <img width="1046" height="338" alt="image" src="https://github.com/user-attachments/assets/c54e45fb-d887-41c2-bcdb-ff337cf95e18" />
+<img width="1335" height="515" alt="image" src="https://github.com/user-attachments/assets/e56b60e3-4e53-4887-9c47-8fb1f2f1d277" />
 
 
 
