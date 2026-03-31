@@ -633,48 +633,47 @@ Using port 443 helps attackers hide within normal encrypted web traffic.
 
 ---
 
-### 🚩 Flag 12: Discovery | User Context
+### 🚩 Flag 12: Credential Access | Credential Theft Tool
 
 **Objective**
-Identify the command used by the attacker to confirm their current user identity, the standard first step in post-compromise situational awareness.
+Identify tool used for credential dumping.
 
 **Hunt Question**
-What command did the attacker run to confirm their user context?
+Identify the filename of the credential dumping tool?
 
-**Answer:** `whoami.exe`
+**Answer:** `mm.exe`
 
 **Query Used**
 
 ```kql
 DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T04:10:00Z))
-| where DeviceName == "as-pc1"
-| where FileName == "whoami.exe"
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
-| order by TimeGenerated asc
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where FolderPath contains "ProgramData\\WindowsCache"
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- Command executed: `whoami.exe` at 03:58:55Z, seconds after initial payload execution
-- Confirms the attacker performed immediate post-exploitation reconnaissance
+- Executable located in staging directory
+- Tool executed shortly after persistence
 
 **Analysis**
-`whoami.exe` is the first command most post-exploitation operators run after gaining a shell. It answers the most important immediate question: who am I, and what can I do from here? Knowing the username, domain membership, and privilege level shapes every decision that follows. The execution of `whoami` seconds after the payload ran confirms this is scripted or tooled behavior, not manual browsing. Detection rules triggering on `whoami.exe` executed by child processes of user-facing applications represent a low-noise, high-value detection opportunity.
+The attacker used `mm.exe` to dump credentials from memory to escalate access.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                              |
 |-----------|------------------------------------|
 | Tactic    | Discovery                          |
-| Technique | T1033: System Owner/User Discovery |
+| Technique | T1003: OS Credential Dumping       |
 
 **Evidence**
-> <img width="1017" height="252" alt="image" src="https://github.com/user-attachments/assets/c716a61c-ba93-49f5-83ac-8c48cff23404" />
+
+<img width="1498" height="513" alt="image" src="https://github.com/user-attachments/assets/7563585c-5c1d-45c7-87e3-ea66f05e7599" />
 
 
----
 
-*With user context confirmed, the attacker turned to enumerating network resources.*
 
 ---
 
