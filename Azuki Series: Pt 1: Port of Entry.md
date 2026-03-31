@@ -768,50 +768,48 @@ The attacker compressed data to prepare it for exfiltration.
 
 ---
 
-### 🚩 Flag 15: Persistence: Remote Tool | Remote Tool
+### 🚩 Flag 15: Exfiltration | Exfiltration Channel
 
 **Objective**
-Identify the commercial remote access tool installed by the attacker to establish a persistent, legitimate-looking access channel that survives credential resets and reboots.
+Identify how data was exfiltrated.
 
 **Hunt Question**
-What remote administration software was installed by the attacker?
+Identify the cloud service used to exfiltrate stolen data?
 
-**Answer:** `AnyDesk`
+**Answer:** `discord`
 
 **Query Used**
 
 ```kql
-DeviceProcessEvents
-| where TimeGenerated between (datetime(2026-01-15T03:55:00Z) .. datetime(2026-01-15T04:10:00Z))
-| where DeviceName == "as-pc1"
-| where InitiatingProcessFileName in~ ("cmd.exe","powershell.exe","wscript.exe","mshta.exe")
-| where ProcessCommandLine has_any ("http", ".exe", "download", "urlcache")
-| project TimeGenerated, DeviceName, AccountName, InitiatingProcessFileName, ProcessCommandLine
-| order by TimeGenerated desc
+DeviceNetworkEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where InitiatingProcessFileName in~ ("powershell.exe", "curl.exe", "certutil.exe", "wget.exe")
+| project TimeGenerated, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, RemoteUrl, RemoteIP, RemotePort
+| sort by TimeGenerated asc
 ```
 
 **Key Observations**
-- Remote tool installed: `AnyDesk`
-- Installation used silent flags to suppress user-visible prompts
-
+- Communication with Discord domains
+- Outbound data transfer observed
+- 
 **Analysis**
-We used a broad spectrum query that is tool agnostic, hunting for behavior rather than a specific software. AnyDesk is a legitimate, widely-used commercial remote desktop application. Installing it as a persistence mechanism is highly effective: it generates minimal security alerts, is unlikely to be blocked by application whitelisting policies that permit commercial software, and provides a full graphical remote session without relying on the Windows RDP service. Even if the initial payload is removed, AnyDesk continues operating as a fully functional backdoor.
+Discord was used as an exfiltration channel to blend malicious traffic with legitimate activity.
 
 
 **MITRE ATT&CK Mapping**
 
-| Field     | Value                         |
-|-----------|-------------------------------|
-| Tactic    | Persistence                   |
-| Technique | T1219: Remote Access Software |
+| Field     | Value                                |
+|-----------|--------------------------------------|
+| Tactic    | Persistence                          |
+| Technique | T1567: Exfiltration Over Web Service |
 
 **Evidence**
-> <img width="1202" height="311" alt="image" src="https://github.com/user-attachments/assets/00a9973f-3f1b-4b70-bd90-7ea3412e1f60" />
+
+<img width="1496" height="518" alt="image" src="https://github.com/user-attachments/assets/a74de953-94b2-4b66-ab0b-1fe5154311da" />
 
 
----
 
-*With the tool identified, the investigation captured its hash for deconfliction and IOC distribution.*
 
 ---
 
