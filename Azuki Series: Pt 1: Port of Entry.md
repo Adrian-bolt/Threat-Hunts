@@ -179,6 +179,7 @@ We used `DeviceLogonEvents` because RDP activity shows up as login events. The p
 
 
 **Evidence**
+
 <img width="1499" height="508" alt="image" src="https://github.com/user-attachments/assets/fb2989fb-1aa3-4b3d-8270-f6387be6766e" />
 
 
@@ -192,7 +193,7 @@ We used `DeviceLogonEvents` because RDP activity shows up as login events. The p
 Identify which account was used to gain access.
 
 **Hunt Question**
-Which account was used for the remote login?
+Identify the user account that was compromised for initial access?
 
 **Answer:** `kenji.sato`
 
@@ -222,6 +223,8 @@ The attacker used valid credentials instead of exploiting a vulnerability. This 
 | Technique | T1078: Valid Accounts                           |
 
 **Evidence**
+
+<img width="1499" height="508" alt="image" src="https://github.com/user-attachments/assets/0b8949b5-a6e5-4bef-a02c-940d9f192eb1" />
 
 
 
