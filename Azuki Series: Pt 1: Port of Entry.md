@@ -228,9 +228,7 @@ The attacker used valid credentials instead of exploiting a vulnerability. This 
 
 
 
----
-
-*With the hash captured, the investigation determined what user action triggered execution.*
+ 
 
 ---
 
@@ -242,7 +240,7 @@ Determine the parent process of the payload execution to confirm whether a user 
 **Hunt Question**
 Identify the command and argument used to enumerate network neighbours?
 
-**Answer:** `explorer.exe`
+**Answer:** `"ARP.EXE"`
 
 **Query Used**
 
