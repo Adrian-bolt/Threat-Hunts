@@ -813,48 +813,47 @@ Discord was used as an exfiltration channel to blend malicious traffic with legi
 
 ---
 
-### 🚩 Flag 16: Persistence: Remote Tool | Remote Tool Hash
+### 🚩 Flag 16: Anti-Forensics | Log Tampering
 
 **Objective**
-Capture the SHA256 hash of the AnyDesk binary to determine whether a legitimate or trojanized installer was used.
+Identify log deletion activity.
 
 **Hunt Question**
-What is the SHA256 hash of the AnyDesk remote access tool binary?
+Identify the first Windows event log cleared by the attacker?
 
-**Answer:** `f42b635d93720d1624c74121b83794d706d4d064bee027650698025703d20532`
+**Answer:** `security`
 
 **Query Used**
 
 ```kql
-DeviceFileEvents
-| where TimeGenerated between (datetime(2026-01-15T04:00:00Z) .. datetime(2026-01-15T04:30:00Z))
-| where DeviceName == ("as-pc1")
-| where FileName =~ "anydesk.exe"
-| where ActionType == "FileCreated"
-| project TimeGenerated, DeviceName, FileName, FolderPath, SHA256
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName =~ "azuki-sl"
+| where ProcessCommandLine has_any ("wevtutil.exe")  //Hint 2: Look for wevtutil.exe executions and identify which log was cleared first.
+| project Timestamp, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, SHA1
+| sort by Timestamp asc
 ```
 
 **Key Observations**
-- SHA256: `f42b635d93720d1624c74121b83794d706d4d064bee027650698025703d20532`
-- Hash is distinct from the initial payload hash; confirms a separate binary
+- `wevtutil.exe` used
+- Security logs cleared first
 
 **Analysis**
-Capturing this hash enables deconfliction: cross-referencing against known-good AnyDesk installer hashes from the official distribution determines whether the attacker used an unmodified tool or a trojanized version. Either way, the hash provides a consistent artifact for hunting across the environment. This hash can be added to endpoint protection block lists and used for retrospective searching across any host that may have received the same binary outside the observed deployment window.
+Log clearing is used to erase evidence and delay detection.
 
 **MITRE ATT&CK Mapping**
 
 | Field     | Value                         |
 |-----------|-------------------------------|
 | Tactic    | Persistence                   |
-| Technique | T1219: Remote Access Software |
+| Technique | T1070: Indicator Removal      |
 
 **Evidence**
-> <img width="1121" height="249" alt="image" src="https://github.com/user-attachments/assets/8283ea89-1a79-4eac-8b36-b8a5f8d8c249" />
+
+<img width="1497" height="511" alt="image" src="https://github.com/user-attachments/assets/b5a7eaa4-d22c-4564-965d-7b59881bbb70" />
 
 
----
 
-*With the hash captured, the investigation identified the native Windows binary used to download AnyDesk.*
 
 ---
 
