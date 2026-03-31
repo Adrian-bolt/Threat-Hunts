@@ -22,8 +22,8 @@
 5. [All Flags Quick Reference](#all-flags-quick-reference)
 6. [Flag-by-Flag Analysis](#flag-by-flag-analysis)
 7. [Conclusion](#conclusion)
-8. [MITRE ATT&CK Mapping](#mitre-attck-mapping)
-9. [Recommendations](#recommendations)
+8. [Recommendations](#recommendations)
+9. [MITRE ATT&CK Mapping](#mitre-attck-mapping)
 
 ---
 
@@ -1050,7 +1050,7 @@ Even though the attacker tried to hide their actions, the logs from Microsoft De
 
 ---
 
-## Remediation Recommendations
+## Recommendations
 
 ### Email and File Delivery Controls
 - Block double-extension executables (e.g., `*.pdf.exe`) at the email gateway layer
